@@ -1,0 +1,7 @@
+data/
+runs/
+outputs/
+checkpoints/
+__pycache__/
+*.pyc
+.ultralytics/

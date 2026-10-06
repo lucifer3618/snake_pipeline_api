@@ -1,0 +1,18 @@
+species:
+  - bungarus_caeruleus
+  - coelognathus_helena
+  - craspedocephalus_trigonocephalus
+  - daboia_russelii
+  - hypnale_hypnale
+  - lycodon_aulicus
+  - naja_naja
+  - oligodon_arnensis
+venom_labels:
+  bungarus_caeruleus: 1
+  coelognathus_helena: 0
+  craspedocephalus_trigonocephalus: 1
+  daboia_russelii: 1
+  hypnale_hypnale: 1
+  lycodon_aulicus: 0
+  naja_naja: 1
+  oligodon_arnensis: 0
