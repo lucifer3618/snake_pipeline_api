@@ -1,0 +1,156 @@
+# -----------------------------------------------------------------------------
+# Operating-system and editor files
+# -----------------------------------------------------------------------------
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+
+# -----------------------------------------------------------------------------
+# Secrets and local configuration
+# -----------------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+!.env.*.example
+secrets/
+credentials/
+.aws/
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+
+# -----------------------------------------------------------------------------
+# Python / FastAPI
+# -----------------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+ENV/
+.python-version
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.hypothesis/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+*.egg-info/
+.eggs/
+dist/
+site/
+*.log
+*.pid
+*.db
+*.sqlite
+*.sqlite3
+
+# Runtime uploads and temporary inference data
+backend/uploads/
+backend/tmp/
+backend/logs/
+
+# -----------------------------------------------------------------------------
+# Machine-learning datasets, runs and generated artifacts
+# -----------------------------------------------------------------------------
+final_pipeline/data/
+final_pipeline/runs/
+final_pipeline/outputs/
+final_pipeline/checkpoints/
+final_pipeline/.ultralytics/
+
+# Model binaries should use external artifact storage or Git LFS.
+*.pt
+*.pth
+*.ckpt
+*.onnx
+*.engine
+*.safetensors
+*.tflite
+
+# TensorBoard and experiment trackers
+events.out.tfevents.*
+mlruns/
+wandb/
+
+# -----------------------------------------------------------------------------
+# Terraform
+# Keep .terraform.lock.hcl committed for reproducible provider versions.
+# -----------------------------------------------------------------------------
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.tfvars.json
+*.auto.tfvars
+*.auto.tfvars.json
+!*.tfvars.example
+!*.tfvars.json.example
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+
+# Terraform plan files may contain sensitive values.
+*.tfplan
+tfplan
+
+# -----------------------------------------------------------------------------
+# Flutter / Dart
+# -----------------------------------------------------------------------------
+.dart_tool/
+.packages
+.pub/
+.pub-cache/
+.flutter-plugins
+.flutter-plugins-dependencies
+**/build/
+**/doc/api/
+
+# Android
+**/android/.gradle/
+**/android/local.properties
+**/android/key.properties
+**/android/captures/
+**/android/app/debug/
+**/android/app/profile/
+**/android/app/release/
+*.aab
+*.apk
+
+# iOS / macOS
+**/ios/Pods/
+**/ios/.symlinks/
+**/ios/Flutter/ephemeral/
+**/ios/Flutter/Generated.xcconfig
+**/ios/Flutter/flutter_export_environment.sh
+**/macos/Pods/
+**/macos/Flutter/ephemeral/
+
+# Web and desktop generated plugin registrants
+**/web/.dart_tool/
+**/linux/flutter/ephemeral/
+**/windows/flutter/ephemeral/
+
+# -----------------------------------------------------------------------------
+# Containers and local development
+# -----------------------------------------------------------------------------
+docker-compose.override.yml
+.docker/
+tmp/
+temp/

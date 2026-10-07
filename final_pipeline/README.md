@@ -14,16 +14,16 @@ original images
   -> compare YOLO segmentation sizes
   -> native-resolution ROI extraction
   -> compare five classifier architectures with identical folds
-  -> cross-fold EfficientNet dual-head ensemble
+  -> cross-fold dual-head MobileViT-XS ensemble with ArcFace + Focal loss
   -> calibrated safety gate
   -> one untouched test evaluation
 ```
 
-The primary comparison is `whole` versus `gt_roi` versus `predicted_roi`. Ground-truth ROI is an oracle experiment; predicted ROI is the deployable experiment.
+The primary controlled comparison is standardized `whole` images versus detector-extracted `predicted_roi` images using matched source images and identical fold assignments.
 
 ## Why ROI images are not permanently resized
 
-`07_build_classifier_inputs.py` saves native-resolution ROI crops. Both training and inference then use the exact same transform:
+`07b_build_fixed_detector_dataset.py` saves native-resolution ROI crops. Both training and inference then use the exact same classifier transform:
 
 1. pad the shorter dimension to a square with black pixels;
 2. resize the square to the network input size;
@@ -109,55 +109,37 @@ Resolve missing labels, corrupt images, invalid polygons and duplicates before s
 
 ```powershell
 python "scripts/01 - Data Preparation/03_create_manifest.py" --images data/02_standardized --output data/manifest.csv --rename-manifest data/01_renamed/rename_manifest.csv
-python "scripts/02 - Detector/04_prepare_detection_folds.py" --manifest data/manifest.csv --images data/02_standardized --labels "PATH_TO_LABELS" --output data/detection_folds
 ```
 
-Default allocation is 80% `train_pool`, 10% `calibration`, and 10% untouched `test`; five folds are created only inside `train_pool`. All images sharing a group stay together.
+Default allocation is 80% `train_pool`, 10% `calibration`, and 10% untouched `test`; five folds are created only inside `train_pool` for classifier cross-validation. All images sharing a group stay together. Detector cross-validation is not used.
 
 ## 4. Compare detector architectures
 
-First compare YOLO sizes on fold 0:
+Six YOLO11 instance-segmentation configurations were compared by varying model capacity, input resolution and maximum training epochs. The original checkpoints, `args.yaml`, `results.csv` and plots are retained under `runs/segment/experiments/training_detection/`. The following command shows the configuration of the selected primary detector:
 
 ```powershell
-python "scripts/02 - Detector/05_train_detectors.py" --data-root data/detection_folds --output runs/detectors --models yolo11n-seg.pt yolo11s-seg.pt yolo11m-seg.pt --folds 0 --epochs 50 --imgsz 640 --batch 8 --device 0
-python "scripts/02 - Detector/06_evaluate_detectors.py" --runs runs/detectors --data-root data/detection_folds --split val --output outputs/detector_selection.csv --device 0
+python "scripts/02 - Detector/04_train_detector.py" --data-yaml "PATH_TO_DETECTOR_DATA.YAML" --model-type yolo11s-seg.pt --epochs 150 --imgsz 512 --batch 8 --project runs/segment/experiments/training_detection --name seg_model_s_2 --device 0
+python "scripts/02 - Detector/05_evaluate_detector.py" --data-yaml "PATH_TO_DETECTOR_DATA.YAML" --weights "runs/segment/experiments/training_detection/seg_model_s_2/weights/best.pt" --split val --imgsz 512 --experiment seg_model_s_2 --output outputs/detector_selection.csv --device 0
 ```
 
-Select primarily by mask mAP50–95, then consider mask mAP50, recall, latency and memory. Train the selected size across all five folds, for example:
-
-```powershell
-python "scripts/02 - Detector/05_train_detectors.py" --data-root data/detection_folds --output runs/detectors --models yolo11s-seg.pt --folds 0 1 2 3 4 --epochs 50 --imgsz 640 --batch 8 --device 0
-```
+Selection prioritized mask mAP50-95, mask mAP50 and mask recall. `seg_model_s_2` was selected as the primary detector and `seg_model_n_3` as the secondary fallback. Retraining is not required for the final demonstration.
 
 ## 5. Generate classifier inputs
 
-The detector template must contain `{fold}`. Use one chosen detector checkpoint for calibration/test so deployment uses one detector crop followed by the five-classifier ensemble.
+Use the frozen `seg_model_s_2` checkpoint for the primary pass and higher-resolution retry, followed by `seg_model_n_3` when both primary attempts fail. The script reads the existing split and fold assignments from the manifest; it does not create new random splits.
 
 ```powershell
-python "scripts/03 - ROI Extraction/07_build_classifier_inputs.py" --manifest data/manifest.csv --images data/02_standardized --labels "PATH_TO_LABELS" --output data/classifier_inputs --detector-template "runs/detectors/yolo11s-seg/fold_{fold}/train/weights/best.pt" --deployment-detector "PATH_TO_SELECTED_DETECTOR_BEST.PT" --device cuda:0
+python "scripts/03 - ROI Extraction/07b_build_fixed_detector_dataset.py" --manifest data/manifest.csv --images data/02_standardized --detector "runs/segment/experiments/training_detection/seg_model_s_2/weights/best.pt" --secondary-detector "runs/segment/experiments/training_detection/seg_model_n_3/weights/best.pt" --output data/04_classifier_inputs --conf 0.25 --imgsz 512 --retry-conf 0.10 --retry-imgsz 768 --context 1.30 --device 0
 ```
 
-Inspect `data/classifier_inputs/generation_audit.csv`. Never silently remove detector failures from the final end-to-end denominator.
-
-### Fixed existing detector, without new segmentation annotations
-
-When the previously validated detector is frozen as the ROI extractor, build the
-classifier dataset directly from standardized images and the split manifest:
-
-```powershell
-python "scripts/03 - ROI Extraction/07b_build_fixed_detector_dataset.py" --manifest data/manifest.csv --images data/02_standardized --detector "PATH_TO_SEG_MODEL_S_2_BEST.PT" --output data/classifier_inputs --imgsz 512 --conf 0.25 --context 1.30 --device 0
-```
-
-This path needs no polygon-label directory. It saves native-resolution crops,
-uses hard links where supported to avoid duplicating image data across folds,
-and records failed detections in `generation_audit.csv`.
+The script saves native-resolution crops, uses hard links where supported to avoid duplicating image data across folds, and records detection stage, confidence and failures in `data/04_classifier_inputs/generation_audit.csv`. Never silently remove detector failures from the final end-to-end denominator.
 
 ## 6. Compare classifiers with five-fold CV
 
 Train all requested architectures on the deployable predicted ROIs:
 
 ```powershell
-python "scripts/04 - Classifier/08_train_classifiers_cv.py" --data-root data/classifier_inputs/predicted_roi --output runs/classifiers_predicted_roi --architectures mobilenet_v2 mobilenet_v2_se mobilenet_v2_cbam efficientnet_b0 --loss ce --folds 0 1 2 3 4 --epochs 25 --batch 32 --pretrained --amp
+python "scripts/04 - Classifier/08_train_classifiers_cv.py" --data-root data/04_classifier_inputs/predicted_roi --output runs/classifiers_predicted_roi --architectures mobilenet_v2 mobilenet_v2_se mobilenet_v2_cbam efficientnet_b0 --loss ce --folds 0 1 2 3 4 --epochs 25 --batch 32 --pretrained --amp
 python "scripts/04 - Classifier/09_summarize_classifiers.py" --runs runs/classifiers_predicted_roi --loss ce --require-folds 5 --output outputs/classifier_comparison.csv --selection-output outputs/selected_architecture.json
 ```
 
@@ -167,7 +149,7 @@ training loop. Its pretrained checkpoint preprocessing is resolved through
 
 ```bash
 python "scripts/04 - Classifier/08c_train_mobilevit_cv.py" \
-  --data-root data/classifier_inputs/predicted_roi \
+  --data-root data/04_classifier_inputs/predicted_roi \
   --output runs/classifiers_mobilevit \
   --model mobilevit_xs.cvnets_in1k \
   --preprocessing model \
@@ -216,7 +198,7 @@ is 60 runs:
 
 ```bash
 python "scripts/04 - Classifier/08b_train_attention_tuning_cv.py" \
-  --data-root data/classifier_inputs/predicted_roi \
+  --data-root data/04_classifier_inputs/predicted_roi \
   --output runs/attention_tuning \
   --reductions 4 8 16 32 \
   --cbam-kernels 3 7 \
@@ -241,13 +223,13 @@ Report mean ± standard deviation for accuracy, macro precision, macro recall an
 The defaults use conservative image augmentation and no batch mixing. Evaluate advanced methods as controlled alternatives:
 
 ```powershell
-python "scripts/04 - Classifier/08_train_classifiers_cv.py" --data-root data/classifier_inputs/predicted_roi --output runs/augmentation_auto_mixup --architectures efficientnet_b0 --dual-head --loss ce --image-augmentation autoaugment --batch-augmentation mixup --mix-alpha 0.2 --mix-probability 0.25 --folds 0 1 2 3 4 --pretrained --amp
-python "scripts/04 - Classifier/08_train_classifiers_cv.py" --data-root data/classifier_inputs/predicted_roi --output runs/augmentation_basic_cutmix --architectures efficientnet_b0 --dual-head --loss ce --image-augmentation basic --batch-augmentation cutmix --mix-alpha 0.2 --mix-probability 0.25 --folds 0 1 2 3 4 --pretrained --amp
+python "scripts/04 - Classifier/08_train_classifiers_cv.py" --data-root data/04_classifier_inputs/predicted_roi --output runs/augmentation_auto_mixup --architectures efficientnet_b0 --dual-head --loss ce --image-augmentation autoaugment --batch-augmentation mixup --mix-alpha 0.2 --mix-probability 0.25 --folds 0 1 2 3 4 --pretrained --amp
+python "scripts/04 - Classifier/08_train_classifiers_cv.py" --data-root data/04_classifier_inputs/predicted_roi --output runs/augmentation_basic_cutmix --architectures efficientnet_b0 --dual-head --loss ce --image-augmentation basic --batch-augmentation cutmix --mix-alpha 0.2 --mix-probability 0.25 --folds 0 1 2 3 4 --pretrained --amp
 ```
 
 Mosaic and mild MixUp are configured separately in YOLO training (`--mosaic 0.8 --mixup 0.05 --close-mosaic 10`). Mosaic is never used for ROI classification. Torchvision AutoAugment uses a previously learned ImageNet policy; it does not search for a new optimal policy on this snake dataset. MixUp/CutMix correctly mix both species and venom losses. Compare these runs against the basic baseline before claiming an improvement.
 
-To quantify the ROI contribution, retrain the selected architecture with identical settings on `whole`, `gt_roi`, and `predicted_roi`, summarize each run, then combine them:
+To quantify the ROI contribution, train the selected architecture with identical settings on matched standardized whole images and detector-extracted ROIs, then compare their five-fold results:
 
 When the fixed-detector builder produced only `predicted_roi`, create a matched
 whole-image fold view directly from standardized images. This uses the same
@@ -279,7 +261,7 @@ full-dataset baseline. The matched comparison is the primary controlled ROI
 ablation.
 
 ```powershell
-python "scripts/04 - Classifier/13_compare_experiments.py" --experiment mobilevit_xs.cvnets_in1k__dual__ce --inputs whole=outputs/whole_summary.csv gt_roi=outputs/gt_roi_summary.csv predicted_roi=outputs/predicted_summary.csv --output outputs/roi_comparison.csv
+python "scripts/04 - Classifier/13_compare_experiments.py" --experiment mobilevit_xs.cvnets_in1k__dual__arcface_focal --inputs whole=outputs/whole_summary.csv predicted_roi=outputs/predicted_summary.csv --output outputs/roi_comparison.csv
 ```
 
 ## 7. Loss-function ablation
@@ -292,7 +274,7 @@ produced non-finite loss in the architecture experiment:
 
 ```bash
 python "scripts/04 - Classifier/08d_train_mobilevit_losses_cv.py" \
-  --data-root data/classifier_inputs/predicted_roi \
+  --data-root data/04_classifier_inputs/predicted_roi \
   --output runs/mobilevit_loss_ablation \
   --model mobilevit_xs.cvnets_in1k \
   --preprocessing model \
@@ -327,7 +309,7 @@ those partitions were excluded before cross-validation.
 Use the five checkpoints from the winning loss configuration. The example below assumes ArcFace + Focal won. Generate calibration predictions without applying test-tuned thresholds:
 
 ```powershell
-python "scripts/05 - Ensemble and Safety/10_evaluate_fold_ensemble.py" --data data/classifier_inputs/predicted_roi/fold_0/calibration --checkpoints runs/mobilevit_loss_ablation/mobilevit_xs.cvnets_in1k__dual__arcface_focal/fold_0/best.pt runs/mobilevit_loss_ablation/mobilevit_xs.cvnets_in1k__dual__arcface_focal/fold_1/best.pt runs/mobilevit_loss_ablation/mobilevit_xs.cvnets_in1k__dual__arcface_focal/fold_2/best.pt runs/mobilevit_loss_ablation/mobilevit_xs.cvnets_in1k__dual__arcface_focal/fold_3/best.pt runs/mobilevit_loss_ablation/mobilevit_xs.cvnets_in1k__dual__arcface_focal/fold_4/best.pt --audit data/classifier_inputs/generation_audit.csv --split calibration --output outputs/ensemble_calibration
+python "scripts/05 - Ensemble and Safety/10_evaluate_fold_ensemble.py" --data data/04_classifier_inputs/predicted_roi/fold_0/calibration --checkpoints runs/mobilevit_loss_ablation/mobilevit_xs.cvnets_in1k__dual__arcface_focal/fold_0/best.pt runs/mobilevit_loss_ablation/mobilevit_xs.cvnets_in1k__dual__arcface_focal/fold_1/best.pt runs/mobilevit_loss_ablation/mobilevit_xs.cvnets_in1k__dual__arcface_focal/fold_2/best.pt runs/mobilevit_loss_ablation/mobilevit_xs.cvnets_in1k__dual__arcface_focal/fold_3/best.pt runs/mobilevit_loss_ablation/mobilevit_xs.cvnets_in1k__dual__arcface_focal/fold_4/best.pt --audit data/04_classifier_inputs/generation_audit.csv --split calibration --output outputs/ensemble_calibration
 python "scripts/05 - Ensemble and Safety/11_calibrate_gate.py" --predictions outputs/ensemble_calibration/predictions.csv --minimum-coverage 0.50 --output outputs/gate_thresholds.json
 ```
 
@@ -338,7 +320,7 @@ The gate checks detector confidence, averaged species confidence, top-1/top-2 ma
 Run exactly once after architectures, preprocessing and thresholds are frozen:
 
 ```powershell
-python "scripts/05 - Ensemble and Safety/10_evaluate_fold_ensemble.py" --data data/classifier_inputs/predicted_roi/fold_0/test --checkpoints runs/mobilevit_loss_ablation/mobilevit_xs.cvnets_in1k__dual__arcface_focal/fold_0/best.pt runs/mobilevit_loss_ablation/mobilevit_xs.cvnets_in1k__dual__arcface_focal/fold_1/best.pt runs/mobilevit_loss_ablation/mobilevit_xs.cvnets_in1k__dual__arcface_focal/fold_2/best.pt runs/mobilevit_loss_ablation/mobilevit_xs.cvnets_in1k__dual__arcface_focal/fold_3/best.pt runs/mobilevit_loss_ablation/mobilevit_xs.cvnets_in1k__dual__arcface_focal/fold_4/best.pt --audit data/classifier_inputs/generation_audit.csv --split test --thresholds outputs/gate_thresholds.json --output outputs/final_test
+python "scripts/05 - Ensemble and Safety/10_evaluate_fold_ensemble.py" --data data/04_classifier_inputs/predicted_roi/fold_0/test --checkpoints runs/mobilevit_loss_ablation/mobilevit_xs.cvnets_in1k__dual__arcface_focal/fold_0/best.pt runs/mobilevit_loss_ablation/mobilevit_xs.cvnets_in1k__dual__arcface_focal/fold_1/best.pt runs/mobilevit_loss_ablation/mobilevit_xs.cvnets_in1k__dual__arcface_focal/fold_2/best.pt runs/mobilevit_loss_ablation/mobilevit_xs.cvnets_in1k__dual__arcface_focal/fold_3/best.pt runs/mobilevit_loss_ablation/mobilevit_xs.cvnets_in1k__dual__arcface_focal/fold_4/best.pt --audit data/04_classifier_inputs/generation_audit.csv --split test --thresholds outputs/gate_thresholds.json --output outputs/final_test
 ```
 
 Report detector mask metrics, classifier CV mean ± SD, ROI ablation, final confusion matrix, end-to-end accuracy, detector coverage, gate coverage, accepted accuracy, contradiction count and latency.

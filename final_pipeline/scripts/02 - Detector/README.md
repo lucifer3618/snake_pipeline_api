@@ -4,10 +4,10 @@ These are portable versions of the workflow used for the six YOLO11
 instance-segmentation experiments reported in the thesis. Detector
 cross-validation was not used; the classifier used five-fold cross-validation.
 
-The original detector runs remain the authoritative evidence under:
+The copied original detector runs remain the authoritative evidence under:
 
 ```text
-01 - Detection_Pipeline/Codes/runs/segment/experiments/training_detection/
+runs/segment/experiments/training_detection/
 ```
 
 No detector retraining is required for the final demonstration. The training
