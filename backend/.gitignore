@@ -1,0 +1,4 @@
+# The repository root ignores model checkpoints globally. These checkpoints are
+# intentionally part of the self-contained backend bundle.
+!pipeline/models/**/*.pt
+__init__.py
