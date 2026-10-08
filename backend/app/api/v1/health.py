@@ -25,5 +25,5 @@ async def health_check() -> HealthResponse:
     return HealthResponse(
         status="healthy",
         service="final-demo-api",
-        version="1.0.0",
+        version="1.0.1",
     )
