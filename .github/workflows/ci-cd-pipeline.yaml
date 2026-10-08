@@ -23,8 +23,9 @@ env:
 
 jobs:
   test-build-push:
-    name: Test, build, and push
+    name: Build, and push
     runs-on: ubuntu-latest
+    environment: release
     timeout-minutes: 90
 
     steps:
