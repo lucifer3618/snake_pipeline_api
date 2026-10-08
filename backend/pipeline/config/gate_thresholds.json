@@ -1,0 +1,9 @@
+{
+  "detector_confidence": 0.35,
+  "species_confidence": 0.4,
+  "species_margin": 0.05,
+  "agreement": 1.0,
+  "maximum_entropy": 0.55,
+  "calibration_coverage": 0.6441441441441441,
+  "calibration_accepted_accuracy": 0.972027972027972
+}
