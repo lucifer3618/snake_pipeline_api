@@ -22,7 +22,7 @@ env:
   AZURE_CORE_OUTPUT: none
 
 jobs:
-  test-build-push:
+  build-push:
     name: Build, and push
     runs-on: ubuntu-latest
     environment: release
