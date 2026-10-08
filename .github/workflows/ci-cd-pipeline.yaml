@@ -1,0 +1,61 @@
+name: Snake Pipeline API Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+# OIDC avoids storing a long-lived Azure client secret in GitHub.
+permissions:
+  contents: read
+  id-token: write
+
+# The registry cache uses one shared ACR tag. Serialize release builds so two
+# workflow runs cannot overwrite that cache manifest at the same time.
+concurrency:
+  group: snake-pipeline-api-acr-cache
+  cancel-in-progress: false
+
+env:
+  ACR_NAME: ${{ vars.ACR_NAME }}
+  IMAGE_NAME: snake-pipeline-api
+  AZURE_CORE_OUTPUT: none
+
+jobs:
+  test-build-push:
+    name: Test, build, and push
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    steps:
+      # Copy files from the repository to the runner.
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Sign in to Azure with GitHub OIDC
+        uses: azure/login@v3
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Sign in to Azure Container Registry
+        run: az acr login --name "$ACR_NAME"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build and push image with ACR layer cache
+        uses: docker/build-push-action@v7
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          push: true
+          platforms: linux/amd64
+          tags: |
+            ${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.ref_name }}
+            ${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }}
+            ${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:latest
+          cache-from: type=registry,ref=${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:buildcache
+          cache-to: type=registry,ref=${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:buildcache,mode=max,compression=zstd
+          provenance: mode=max
