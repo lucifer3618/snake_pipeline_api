@@ -41,10 +41,12 @@ curl.exe -X POST http://127.0.0.1:8000/api/v1/predictions -H "X-API-Key: replace
 Request the detector visualization and classifier ROI with query arguments:
 
 ```powershell
-curl.exe -X POST "http://127.0.0.1:8000/api/v1/predictions?include_mask_overlay=true&include_roi_crop=true" -H "X-API-Key: replace-with-a-long-random-secret" -F "file=@snake.jpg"
+curl.exe -X POST "http://127.0.0.1:8000/api/v1/predictions?include_mask_overlay=true&include_roi_crop=true&include_gradcam=true" -H "X-API-Key: replace-with-a-long-random-secret" -F "file=@snake.jpg"
 ```
 
-The optional `mask_overlay` and `roi_crop` response objects contain `media_type: "image/jpeg"` and base64-encoded JPEG bytes in `data`. They are omitted by default to keep responses small. The overlay shows the raw mask produced by the successful instance-segmentation cascade stage; the ROI is the healed, context-expanded crop actually passed to the classifier.
+The optional `mask_overlay`, `roi_crop`, and `gradcam_overlay` response objects contain `media_type: "image/jpeg"` and base64-encoded JPEG bytes in `data`. They are omitted by default to keep responses small. The mask overlay shows the raw mask produced by the successful instance-segmentation cascade stage; the ROI is the healed, context-expanded crop actually passed to the classifier; and the Grad-CAM overlay is the normalized average of the five fold-specific maps for the ensemble-predicted species.
+
+`processing_ms` measures only the core detector cascade, ROI extraction, classifier ensemble, and safety-gate execution. Optional image drawing, JPEG encoding, and Grad-CAM generation occur after this value is fixed and therefore never increase it. When at least one optional artifact is requested, `artifact_processing_ms` reports that additional work separately.
 
 Every successful detection also returns `pixel_reduction`. It reports the exact original and ROI dimensions, total pixel counts, removed pixel count, retained percentage, and reduction percentage. Percentages describe spatial image area before the classifier resizes its input; they do not describe file-size compression.
 
