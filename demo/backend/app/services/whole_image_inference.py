@@ -97,7 +97,7 @@ class WholeImageInferenceService:
                 from snake_pipeline.image_ops import checkpoint_classifier_transform
                 from snake_pipeline.models import load_checkpoint
 
-                requested = self.settngs.device
+                requested = self.settings.device
                 device_name = requested if not requested.startswith("cuda") or torch.cuda.is_available() else "cpu"
                 if device_name != requested:
                     logger.warning("CUDA is unavailable; whole-image classifier is using CPU instead of %s", requested)
