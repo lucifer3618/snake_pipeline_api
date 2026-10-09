@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.router import api_router
 from app.core.config import settings
-from app.services.inference import get_inference_service
+from demo.backend.app.services.pipeline_inference import get_inference_service
 
 
 logger = logging.getLogger(__name__)
