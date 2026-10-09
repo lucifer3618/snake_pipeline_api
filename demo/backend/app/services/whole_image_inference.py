@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import base64
 import logging
+import math
 import sys
 import threading
+import time
 from typing import Any
 
 from app.core.config import Settings
@@ -100,7 +103,7 @@ class WholeImageInferenceService:
                 requested = self.settings.device
                 device_name = requested if not requested.startswith("cuda") or torch.cuda.is_available() else "cpu"
                 if device_name != requested:
-                    logger.warning("CUDA is unavailable; whole-image classifier is using CPU instead of %s", requested)
+                    logger.warning("CUDA is not available; whole-image classifier is using CPU instead of GPU")
                 self._device = torch.device(device_name)
 
                 model, metadata = load_checkpoint(self.settings.whole_image_classifier_path, self._device)
@@ -118,4 +121,74 @@ class WholeImageInferenceService:
             finally:
                 self._loading = False
 
-   
+    @staticmethod
+    def _encode_jpeg(image: Any) -> dict[str, str]:
+        import cv2
+
+        encoded, buffer = cv2.imencode(".jpg", image, [cv2.IMWRITE_JPEG_QUALITY, 90])
+        if not encoded:
+            raise RuntimeError("Could not encode whole-image inference artifact")
+        return {
+            "media_type": "image/jpeg",
+            "data": base64.b64encode(buffer.tobytes()).decode("ascii"),
+        }
+
+
+    def predict(self, image_bytes: bytes) -> dict[str, Any]:
+        if not self.ready:
+            try:
+                self.load()
+            except Exception as error:
+                raise WholeImagePipelineUnavailableError(self._load_error or str(error)) from error
+
+        import cv2
+        import numpy as np
+        import torch
+        import torch.nn.functional as F
+        from PIL import Image
+        from snake_pipeline.config import SPECIES, VENOM_LOOKUP
+
+        image = cv2.imdecode(np.frombuffer(image_bytes, dtype=np.uint8), cv2.IMREAD_COLOR)
+        if image is None:
+            raise InvalidWholeImageError("The uploaded file is not a decodable image")
+
+        with self._inference_lock:
+            # Match the detector-guided timer: exclude model loading, queueing, and decoding.
+            started = time.perf_counter()
+            image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+            tensor = self._transform(Image.fromarray(image_rgb)).unsqueeze(0).to(self._device)
+            with torch.no_grad():
+                species_logits, venom_logits = self._model(tensor)
+                species_probs = F.softmax(species_logits, dim=1)[0]
+                venom_probs = F.softmax(venom_logits, dim=1)[0]
+
+            predicted_index = int(species_probs.argmax())
+            predicted_venom = int(venom_probs.argmax())
+            top2 = species_probs.topk(2)
+            normalized_entropy = float(
+                -(species_probs * torch.log(species_probs.clamp_min(1e-9))).sum() / math.log(len(SPECIES))
+            )
+            expected_venom = int(VENOM_LOOKUP[predicted_index])
+            result: dict[str, Any] = {
+                "inference_mode": "whole_image_single_model",
+                "architecture": "mobilevit_xs.cvnets_in1k",
+                "loss": "arcface_focal",
+                "fold": 4,
+                "model_count": 1,
+                "image_size": 256,
+                "predicted_index": predicted_index,
+                "predicted_species": SPECIES[predicted_index],
+                "species_confidence": float(top2.values[0]),
+                "species_margin": float(top2.values[0] - top2.values[1]),
+                "normalized_entropy": normalized_entropy,
+                "predicted_venom": predicted_venom,
+                "venom_confidence": float(venom_probs[predicted_venom]),
+                "expected_venom": expected_venom,
+                "venom_consistent": predicted_venom == expected_venom,
+            }
+            result["processing_ms"] = round((time.perf_counter() - started) * 1000, 2)
+
+            return result
+
+
+_whole_image_service: WholeImageInferenceService | None = None
