@@ -97,3 +97,50 @@ async def create_prediction(
             detail="Inference failed unexpectedly",
         ) from error
     return PredictionResponse(**result)
+
+
+@router.post(
+    "/whole-image",
+    response_model=WholeImagePredictionResponse,
+    summary="Classify a whole image with one MobileViT-XS model",
+    responses={
+        400: {"description": "The upload is not a valid image"},
+        413: {"description": "The upload is too large"},
+        415: {"description": "Unsupported image media type"},
+        503: {"description": "The whole-image classifier is unavailable"},
+    },
+)
+async def create_whole_image_prediction(
+    request: Request,
+    file: UploadFile = File(...),
+    include_gradcam: bool = Query(
+        False,
+        description="Include a Grad-CAM for the single model's predicted species",
+    ),
+) -> WholeImagePredictionResponse:
+    if file.content_type not in ALLOWED_CONTENT_TYPES:
+        raise HTTPException(
+            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+            detail="Supported image types are JPEG, PNG, WebP, and BMP",
+        )
+    payload = await _read_bounded(file, settings.max_upload_bytes)
+    service = (
+        getattr(request.app.state, "whole_image_inference_service", None)
+        or get_whole_image_inference_service()
+    )
+    try:
+        result = await asyncio.to_thread(
+            service.predict,
+            payload,
+            include_gradcam=include_gradcam,
+        )
+    except InvalidWholeImageError as error:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
+    except WholeImagePipelineUnavailableError as error:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(error)) from error
+    except Exception as error:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Whole-image inference failed unexpectedly",
+        ) from error
+    return WholeImagePredictionResponse(**result)
