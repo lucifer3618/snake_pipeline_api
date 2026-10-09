@@ -53,8 +53,8 @@ jobs:
       - name: Build and push image with ACR layer cache
         uses: docker/build-push-action@v7
         with:
-          context: ./backend
-          file: ./backend/Dockerfile
+          context: ./demo/backend
+          file: ./demo/backend/Dockerfile
           push: true
           platforms: linux/amd64
           tags: |
