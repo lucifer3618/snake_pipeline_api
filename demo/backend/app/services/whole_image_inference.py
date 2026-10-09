@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 import base64
 import logging
 import math
@@ -133,8 +132,17 @@ class WholeImageInferenceService:
             "data": base64.b64encode(buffer.tobytes()).decode("ascii"),
         }
 
+    def _gradcam_overlay(self, image: Any, tensor: Any, class_index: int) -> Any:
+        import cv2
+        from snake_pipeline.explainability import gradcam_for_class, overlay_cam, remove_square_padding
 
-    def predict(self, image_bytes: bytes) -> dict[str, Any]:
+        square_cam, _ = gradcam_for_class(self._model, tensor, class_index)
+        native_cam = remove_square_padding(square_cam, image.shape[1], image.shape[0])
+        image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        overlay_rgb = overlay_cam(image_rgb, native_cam)
+        return cv2.cvtColor(overlay_rgb, cv2.COLOR_RGB2BGR)
+
+    def predict(self, image_bytes: bytes, *, include_gradcam: bool = False) -> dict[str, Any]:
         if not self.ready:
             try:
                 self.load()
@@ -188,7 +196,31 @@ class WholeImageInferenceService:
             }
             result["processing_ms"] = round((time.perf_counter() - started) * 1000, 2)
 
+            if include_gradcam:
+                artifact_started = time.perf_counter()
+                result["gradcam_overlay"] = self._encode_jpeg(
+                    self._gradcam_overlay(image, tensor, predicted_index)
+                )
+                result["gradcam_target_index"] = predicted_index
+                result["gradcam_target_species"] = SPECIES[predicted_index]
+                result["artifact_processing_ms"] = round(
+                    (time.perf_counter() - artifact_started) * 1000,
+                    2,
+                )
             return result
 
 
 _whole_image_service: WholeImageInferenceService | None = None
+
+
+def get_whole_image_inference_service(
+    settings: Settings | None = None,
+) -> WholeImageInferenceService:
+    global _whole_image_service
+    if _whole_image_service is None:
+        if settings is None:
+            from app.core.config import settings as application_settings
+
+            settings = application_settings
+        _whole_image_service = WholeImageInferenceService(settings)
+    return _whole_image_service
