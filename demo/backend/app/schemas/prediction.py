@@ -80,6 +80,17 @@ class WholeImagePredictionResponse(BaseModel):
     gradcam_target_index: int | None = None
     gradcam_target_species: str | None = None
 
+
+class WholeImageModelStatusResponse(BaseModel):
+    ready: bool
+    loading: bool
+    device: str
+    classifier_count: int
+    architecture: str | None = None
+    fold: int | None = None
+    error: str | None = None
+
+
 class ModelStatusResponse(BaseModel):
     ready: bool
     loading: bool
