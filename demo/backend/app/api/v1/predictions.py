@@ -5,8 +5,9 @@ import asyncio
 from fastapi import APIRouter, File, HTTPException, Query, Request, UploadFile, status
 
 from app.core.config import settings
-from app.schemas.prediction import ModelStatusResponse, PredictionResponse
-from app.services.inference import InvalidImageError, PipelineUnavailableError, get_inference_service
+from app.schemas.prediction import ModelStatusResponse, PredictionResponse, WholeImageModelStatusResponse, WholeImagePredictionResponse
+from app.services.pipeline_inference import InvalidImageError, PipelineUnavailableError, get_inference_service
+from app.services.whole_image_inference import InvalidWholeImageError, WholeImagePipelineUnavailableError, get_whole_image_inference_service
 
 
 router = APIRouter(prefix="/predictions", tags=["Predictions"])
@@ -29,6 +30,19 @@ async def _read_bounded(file: UploadFile, maximum: int) -> bytes:
 async def model_status(request: Request) -> ModelStatusResponse:
     service = getattr(request.app.state, "inference_service", None) or get_inference_service()
     return ModelStatusResponse(**service.status())
+
+
+@router.get(
+    "/whole-image/status",
+    response_model=WholeImageModelStatusResponse,
+    summary="Check whole-image model readiness",
+)
+async def whole_image_model_status(request: Request) -> WholeImageModelStatusResponse:
+    service = (
+        getattr(request.app.state, "whole_image_inference_service", None)
+        or get_whole_image_inference_service()
+    )
+    return WholeImageModelStatusResponse(**service.status())
 
 
 @router.post(
