@@ -58,6 +58,27 @@ class PredictionResponse(BaseModel):
     )
     processing_ms: float
 
+class WholeImagePredictionResponse(BaseModel):
+    inference_mode: Literal["whole_image_single_model"] = "whole_image_single_model"
+    architecture: Literal["mobilevit_xs.cvnets_in1k"] = "mobilevit_xs.cvnets_in1k"
+    loss: Literal["arcface_focal"] = "arcface_focal"
+    fold: Literal[4] = 4
+    model_count: Literal[1] = 1
+    image_size: Literal[256] = 256
+    predicted_index: int
+    predicted_species: str
+    species_confidence: float
+    species_margin: float
+    normalized_entropy: float
+    predicted_venom: int
+    venom_confidence: float
+    expected_venom: int
+    venom_consistent: bool
+    processing_ms: float
+    artifact_processing_ms: float | None = None
+    gradcam_overlay: EncodedImage | None = None
+    gradcam_target_index: int | None = None
+    gradcam_target_species: str | None = None
 
 class ModelStatusResponse(BaseModel):
     ready: bool
