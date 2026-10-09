@@ -44,7 +44,7 @@ class Settings:
     detector_path: Path
     secondary_detector_path: Path
     classifier_paths: tuple[Path, ...]
-    whole_image_classifier_path = Path
+    whole_image_classifier_path: Path
     thresholds_path: Path
     device: str
     detector_confidence: float
@@ -88,7 +88,7 @@ class Settings:
             classifier_paths=classifier_paths,
             whole_image_classifier_path=_env_path(
                 "WHOLE_IMAGE_CLASSIFIER_PATH",
-                pipeline_root / "models" / "whole_image" / "whole_image_classifire_MobileVi_fold4.pt",
+                pipeline_root / "models" / "whole_image" / "whole_image_classifire_MobileViT_fold4.pt",
             ),
             thresholds_path=_env_path("THRESHOLDS_PATH", pipeline_root / "config" / "gate_thresholds.json"),
             device=os.getenv("MODEL_DEVICE", "cuda:0"),
