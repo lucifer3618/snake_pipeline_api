@@ -169,6 +169,22 @@ class InferenceService:
         cv2.drawContours(output, contours, -1, (0, 215, 255), 2, cv2.LINE_AA)
         return output
 
+    def _ensemble_gradcam_overlay(self, roi_image: Any, tensor: Any, class_index: int) -> Any:
+        import cv2
+        import numpy as np
+        from snake_pipeline.explainability import gradcam_for_class, overlay_cam, remove_square_padding
+
+        fold_cams = []
+        for model in self._ensemble.models:
+            square_cam, _ = gradcam_for_class(model, tensor, class_index)
+            fold_cams.append(remove_square_padding(square_cam, roi_image.shape[1], roi_image.shape[0]))
+        ensemble_cam = np.mean(np.stack(fold_cams), axis=0)
+        minimum, maximum = float(ensemble_cam.min()), float(ensemble_cam.max())
+        ensemble_cam = (ensemble_cam - minimum) / max(maximum - minimum, 1e-8)
+        roi_rgb = cv2.cvtColor(roi_image, cv2.COLOR_BGR2RGB)
+        overlay_rgb = overlay_cam(roi_rgb, ensemble_cam)
+        return cv2.cvtColor(overlay_rgb, cv2.COLOR_RGB2BGR)
+
     @staticmethod
     def _predict_instance_roi(
         detector: Any,
@@ -212,6 +228,7 @@ class InferenceService:
         *,
         include_mask_overlay: bool = False,
         include_roi_crop: bool = False,
+        include_gradcam: bool = False,
     ) -> dict[str, Any]:
         if not self.ready:
             try:
@@ -228,8 +245,9 @@ class InferenceService:
         if image is None:
             raise InvalidImageError("The uploaded file is not a decodable image")
 
-        started = time.perf_counter()
         with self._inference_lock:
+            # Queueing behind another request is not part of model execution time.
+            started = time.perf_counter()
             attempts = (
                 (
                     "primary",
@@ -307,13 +325,28 @@ class InferenceService:
                         "retained_percentage": round(retained_percentage, 6),
                         "reduction_percentage": round(100.0 - retained_percentage, 6),
                     },
-                    "processing_ms": round((time.perf_counter() - started) * 1000, 2),
                 }
             )
+
+            # Freeze the detector -> ROI -> ensemble -> safety-gate latency before
+            # producing any optional response visualization.
+            result["processing_ms"] = round((time.perf_counter() - started) * 1000, 2)
+            artifact_started = time.perf_counter()
             if include_mask_overlay:
                 result["mask_overlay"] = self._encode_jpeg(self._draw_mask_overlay(image, raw_mask))
             if include_roi_crop:
                 result["roi_crop"] = self._encode_jpeg(roi.image)
+            if include_gradcam:
+                result["gradcam_overlay"] = self._encode_jpeg(
+                    self._ensemble_gradcam_overlay(roi.image, tensor, result["predicted_index"])
+                )
+                result["gradcam_target_index"] = result["predicted_index"]
+                result["gradcam_target_species"] = result["predicted_species"]
+            if include_mask_overlay or include_roi_crop or include_gradcam:
+                result["artifact_processing_ms"] = round(
+                    (time.perf_counter() - artifact_started) * 1000,
+                    2,
+                )
             return result
 
 

@@ -49,6 +49,13 @@ class PredictionResponse(BaseModel):
     pixel_reduction: PixelReduction | None = None
     mask_overlay: EncodedImage | None = None
     roi_crop: EncodedImage | None = None
+    gradcam_overlay: EncodedImage | None = None
+    gradcam_target_index: int | None = None
+    gradcam_target_species: str | None = None
+    artifact_processing_ms: float | None = Field(
+        default=None,
+        description="Time spent generating optional response images; excluded from processing_ms",
+    )
     processing_ms: float
 
 

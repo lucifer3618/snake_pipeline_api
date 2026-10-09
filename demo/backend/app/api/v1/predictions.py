@@ -53,6 +53,10 @@ async def create_prediction(
         False,
         description="Include a base64 JPEG of the contextual ROI passed to the classifier",
     ),
+    include_gradcam: bool = Query(
+        False,
+        description="Include the five-model averaged Grad-CAM over the classifier ROI",
+    ),
 ) -> PredictionResponse:
     if file.content_type not in ALLOWED_CONTENT_TYPES:
         raise HTTPException(
@@ -67,6 +71,7 @@ async def create_prediction(
             payload,
             include_mask_overlay=include_mask_overlay,
             include_roi_crop=include_roi_crop,
+            include_gradcam=include_gradcam,
         )
     except InvalidImageError as error:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
