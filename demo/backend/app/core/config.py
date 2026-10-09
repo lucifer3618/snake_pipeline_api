@@ -34,6 +34,7 @@ def _env_bool(name: str, default: bool) -> bool:
     return value.strip().lower() in {"1", "true", "yes", "on"}
 
 
+# Dataclass decorator allow to reduce boiler plate code and create non mutable class (frozen) with no addtions (slots) as well.
 @dataclass(frozen=True, slots=True)
 class Settings:
     api_key: str
@@ -43,6 +44,7 @@ class Settings:
     detector_path: Path
     secondary_detector_path: Path
     classifier_paths: tuple[Path, ...]
+    whole_image_classifier_path = Path
     thresholds_path: Path
     device: str
     detector_confidence: float
@@ -54,6 +56,7 @@ class Settings:
     preload_models: bool
     cors_origins: tuple[str, ...]
 
+    # classmethod decorator allow the function to run inside the class without relaying on a instance. 
     @classmethod
     def from_env(cls) -> "Settings":
         pipeline_root = _env_path("PIPELINE_ROOT", DEFAULT_PIPELINE_ROOT)
@@ -83,6 +86,10 @@ class Settings:
                 pipeline_root / "models" / "detectors" / "seg_model_n_3_best.pt",
             ),
             classifier_paths=classifier_paths,
+            whole_image_classifier_path=_env_path(
+                "WHOLE_IMAGE_CLASSIFIER_PATH",
+                pipeline_root / "models" / "whole_image" / "whole_image_classifire_MobileVi_fold4.pt",
+            ),
             thresholds_path=_env_path("THRESHOLDS_PATH", pipeline_root / "config" / "gate_thresholds.json"),
             device=os.getenv("MODEL_DEVICE", "cuda:0"),
             detector_confidence=_env_float("DETECTOR_CONFIDENCE", 0.25),
