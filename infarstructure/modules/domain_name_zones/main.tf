@@ -59,3 +59,15 @@ resource "azurerm_container_app_custom_domain" "this" {
     ]
   }
 }
+
+resource "azurerm_container_app_environment_managed_certificate" "this" {
+  for_each = var.managed_certificates
+
+  name                         = each.value.name
+  container_app_environment_id = var.container_app_environment_id
+  subject_name                 = each.value.subject_name
+  domain_control_validation    = each.value.domain_control_validation
+  tags                         = each.value.tags
+
+  depends_on = [azurerm_container_app_custom_domain.this]
+}
