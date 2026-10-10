@@ -1,4 +1,8 @@
-# ------- Resource Group Variables -------
+variable "log_analytics_workspace_name" { 
+  description = "The name of the Log Analytics workspace"
+  type        = string
+}
+
 variable "resource_group_name" {
   description = "The name of the resource group"
   type        = string
@@ -6,13 +10,6 @@ variable "resource_group_name" {
 
 variable "location" {
   description = "The location of the resource group"
-  type        = string
-}
-
-
-# ------ Log Analytics Workspace Variables -------
-variable "log_analytics_workspace_name" { 
-  description = "The name of the Log Analytics workspace"
   type        = string
 }
 
