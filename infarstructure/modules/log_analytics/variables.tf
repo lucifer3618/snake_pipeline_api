@@ -1,4 +1,4 @@
-variable "log_analytics_workspace_name" { 
+variable "log_analytics_workspace_name" {
   description = "The name of the Log Analytics workspace"
   type        = string
 }

@@ -1,8 +1,8 @@
 resource "azurerm_container_app_environment" "this" {
-  name = var.container_apps_environment_name
-  resource_group_name = var.resource_group_name
-  location = var.location
-  logs_destination = var.logs_destination
+  name                       = var.container_apps_environment_name
+  resource_group_name        = var.resource_group_name
+  location                   = var.location
+  logs_destination           = var.logs_destination
   log_analytics_workspace_id = var.logs_analytics_workspace_id
 
   identity {
@@ -10,10 +10,10 @@ resource "azurerm_container_app_environment" "this" {
   }
 
   workload_profile {
-    name = "Consumption"
+    name                  = "Consumption"
     workload_profile_type = "Consumption"
-    minimum_count = 0
-    maximum_count = 0
+    minimum_count         = 0
+    maximum_count         = 0
   }
 
   # Common tags
