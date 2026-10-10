@@ -42,7 +42,7 @@ async def lifespan(application: FastAPI):
 
 def create_app() -> FastAPI:
     application = FastAPI(
-        title="Final Demo API",
+        title="Multimodal Snake Species Identification API",
         description="Backend API for model inference and predictions",
         version="1.0.0",
         docs_url="/docs",
