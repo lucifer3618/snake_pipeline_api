@@ -282,8 +282,11 @@ class InferenceService:
                         str(self._device),
                         self.settings.roi_context,
                     )
-                    detector_stage = stage
-                    break
+                    if roi is not None and raw_mask is not None:
+                        detector_stage = stage
+                        break
+                    else:
+                        detector_errors.append(f"{stage}: No ROI detected")
                 except ValueError as error:
                     detector_errors.append(f"{stage}: {error}")
 
@@ -298,6 +301,22 @@ class InferenceService:
 
             tensor = self._ensemble.transform(Image.fromarray(cv2.cvtColor(roi.image, cv2.COLOR_BGR2RGB)))
             tensor = tensor.unsqueeze(0).to(self._device)
+
+            # If the detector confidence is below the minimum threshold according to the detector stage, 
+            # withhold the prediction.
+            if roi.confidence < self._thresholds["detector_confidence"]:
+                logger.warning(
+                    "Detector confidence %.4f is below threshold %.4f; withholding prediction",
+                    roi.confidence,
+                    self._thresholds["detector_confidence"],
+                )
+                return {
+                    "decision": "WITHHOLD",
+                    "reasons": ["low_detector_confidence"],
+                    "processing_ms": round((time.perf_counter() - started) * 1000, 2),
+                }
+
+            # If not move on with the classifier ensemble and safety gate.
             result = self._ensemble.predict(tensor)
             result["detector_confidence"] = roi.confidence
             # The detector stage is passed to add stage based confidence thresholds.
