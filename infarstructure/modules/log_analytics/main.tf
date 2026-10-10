@@ -7,4 +7,10 @@ resource "azurerm_log_analytics_workspace" "this" {
 
   # Common tags
   tags = var.tags
+
+  lifecycle {
+    # Azure omits disableLocalAuth when it has never been explicitly set.
+    # Preserve that live state instead of writing the provider default.
+    ignore_changes = [local_authentication_enabled]
+  }
 }
