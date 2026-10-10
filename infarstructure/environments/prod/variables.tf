@@ -42,6 +42,17 @@ variable "logs_destination" {
   type        = string
 }
 
+# ------ Container Registry Variables -------
+variable "container_registry_name" {
+  description = "The name of the Azure Container Registry"
+  type        = string
+}
+
+variable "container_registry_sku" {
+  description = "The SKU of the Azure Container Registry"
+  type        = string
+}
+
 # ------ Identity Variables -------
 variable "app_registration_name" {
   description = "The name of the app registration"

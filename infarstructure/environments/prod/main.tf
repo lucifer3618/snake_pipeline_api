@@ -37,3 +37,25 @@ module "github_actions_identity" {
   federated_identity_issuer    = var.federated_identity_issuer
   federated_identity_subject   = var.federated_identity_subject
 }
+
+module "container_registry" {
+  source = "../../modules/container_registry"
+
+  name                = var.container_registry_name
+  resource_group_name = module.resource_group.resource_group_name
+  location            = var.location
+  sku                 = var.container_registry_sku
+
+  role_assignments = {
+    github_actions_push = {
+      principal_id         = module.github_actions_identity.service_principal_object_id
+      role_definition_name = "AcrPush"
+    }
+    container_apps_environment_pull = {
+      principal_id         = module.container_apps_environment.principal_id
+      role_definition_name = "AcrPull"
+    }
+  }
+
+  tags = var.tags
+}
