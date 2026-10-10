@@ -20,14 +20,15 @@ def main():
     parser=argparse.ArgumentParser()
     parser.add_argument("--image",required=True, help= "Path to input image")
     parser.add_argument("--detector",required=True, help="Path to YOLOv11 primary detector checkpoint")
-    parser.add_argument("--secondary_detector",required=False, help="Path to YOLOv11 secondary detector checkpoint")
+    parser.add_argument("--secondary-detector",required=False, help="Path to YOLOv11 secondary detector checkpoint")
     parser.add_argument("--conf",type=float,default=0.25, help="Confidence threshold for primary detector")
-    parser.add_argument("--retry_conf",type=float,default=0.25, help="Confidence threshold for retry detector")
-    parser.add_argument("--retry_imgsz",type=int,default=640, help="Image size for retry detector; must match training size")
+    parser.add_argument("--retry-conf",type=float,default=0.25, help="Confidence threshold for retry detector")
+    parser.add_argument("--retry-imgsz",type=int,default=640, help="Image size for retry detector; must match training size")
     parser.add_argument("--classifiers",nargs="+",required=True, help="Paths to cross-fold dual-head classifier checkpoints")
     parser.add_argument("--thresholds",required=True, help="Path to thresholds file")
     parser.add_argument("--device",default="cuda:0", help="Device to run inference on; use 'cpu' for CPU-only inference")
     parser.add_argument("--imgsz",type=int,default=640, help="Image size for primery YOLOv11 detector; must match training size")
+    parser.add_argument("--context",type=float,default=1.30, help="Context ratio for ROI cropping; must match training size")
     args=parser.parse_args()
 
     device_name=args.device if not args.device.startswith("cuda") or torch.cuda.is_available() else "cpu";
@@ -74,10 +75,11 @@ def main():
             try:
                 result = predict_roi(
                     image=image,
-                    detector=detector,
+                    model=detector,
                     conf=conf,
                     imgsz=imgsz,
-                    device=device
+                    device=device,
+                    context=args.context
                 )
                 if result is not None:
                     roi = result
