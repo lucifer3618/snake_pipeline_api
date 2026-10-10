@@ -30,3 +30,14 @@ variable "tags" {
   description = "Tags to be applied to the Log Analytics workspace"
   type        = map(string)
 }
+
+# ------ Container Apps Environment Variables -------
+variable "container_apps_environment_name" {
+  description = "The name of the container apps environment"
+  type        = string
+}
+
+variable "logs_destination" {
+  description = "The destination of the logs"
+  type        = string
+}
