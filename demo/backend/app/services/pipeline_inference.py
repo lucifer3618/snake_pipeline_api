@@ -304,17 +304,17 @@ class InferenceService:
 
             # If the detector confidence is below the minimum threshold according to the detector stage, 
             # withhold the prediction.
-            if roi.confidence < self._thresholds["detector_confidence"]:
-                logger.warning(
-                    "Detector confidence %.4f is below threshold %.4f; withholding prediction",
-                    roi.confidence,
-                    self._thresholds["detector_confidence"],
-                )
-                return {
-                    "decision": "WITHHOLD",
-                    "reasons": ["low_detector_confidence"],
-                    "processing_ms": round((time.perf_counter() - started) * 1000, 2),
-                }
+            # if roi.confidence < self._thresholds["detector_confidence"]:
+            #     logger.warning(
+            #         "Detector confidence %.4f is below threshold %.4f; withholding prediction",
+            #         roi.confidence,
+            #         self._thresholds["detector_confidence"],
+            #     )
+            #     return {
+            #         "decision": "WITHHOLD",
+            #         "reasons": ["low_detector_confidence"],
+            #         "processing_ms": round((time.perf_counter() - started) * 1000, 2),
+            #     }
 
             # If not move on with the classifier ensemble and safety gate.
             result = self._ensemble.predict(tensor)
