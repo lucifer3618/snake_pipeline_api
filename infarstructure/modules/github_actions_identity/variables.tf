@@ -22,3 +22,8 @@ variable "federated_identity_subject" {
   type = string
   description = "Subject for the federated identity"
 }
+
+variable "resource_group_id" {
+  type        = string
+  description = "Resource group scope where GitHub Actions receives Contributor access"
+}

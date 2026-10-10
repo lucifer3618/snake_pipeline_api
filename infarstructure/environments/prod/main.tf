@@ -30,6 +30,7 @@ module "container_apps_environment" {
 
 module "github_actions_identity" {
   source = "../../modules/github_actions_identity"
+  resource_group_id = module.resource_group.resource_group_id
   app_registration_name = var.app_registration_name
   federated_identity_name = var.federated_identity_name
   federated_identity_audiences = var.federated_identity_audiences

@@ -5,6 +5,17 @@ resource "azurerm_container_app_environment" "this" {
   logs_destination = var.logs_destination
   log_analytics_workspace_id = var.logs_analytics_workspace_id
 
+  identity {
+    type = "SystemAssigned"
+  }
+
+  workload_profile {
+    name = "Consumption"
+    workload_profile_type = "Consumption"
+    minimum_count = 0
+    maximum_count = 0
+  }
+
   # Common tags
   tags = var.tags
 }
