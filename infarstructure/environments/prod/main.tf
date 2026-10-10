@@ -27,3 +27,12 @@ module "container_apps_environment" {
 
   tags = var.tags
 }
+
+module "github_actions_identity" {
+  source = "../../modules/github_actions_identity"
+  app_registration_name = var.app_registration_name
+  federated_identity_name = var.federated_identity_name
+  federated_identity_audiences = var.federated_identity_audiences
+  federated_identity_issuer = var.federated_identity_issuer
+  federated_identity_subject = var.federated_identity_subject 
+}

@@ -41,3 +41,29 @@ variable "logs_destination" {
   description = "The destination of the logs"
   type        = string
 }
+
+# ------ Identity Variables -------
+variable "app_registration_name" {
+  description = "The name of the app registration"
+  type        = string
+}
+
+variable "federated_identity_name" {
+  description = "The name of the federated identity"
+  type        = string
+}
+
+variable "federated_identity_audiences" {
+  description = "The audiences of the federated identity"
+  type        = list(string)
+}
+
+variable "federated_identity_issuer" {
+  description = "The issuer of the federated identity"
+  type        = string
+}
+
+variable "federated_identity_subject" {
+  description = "The subject of the federated identity"
+  type        = string
+}
