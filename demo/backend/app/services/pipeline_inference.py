@@ -300,6 +300,8 @@ class InferenceService:
             tensor = tensor.unsqueeze(0).to(self._device)
             result = self._ensemble.predict(tensor)
             result["detector_confidence"] = roi.confidence
+            # The detector stage is passed to add stage based confidence thresholds.
+            result["detector_stage"] = detector_stage
             decision, reasons = gate(result, self._thresholds)
             x1, y1, x2, y2 = (int(value) for value in roi.bbox)
             original_height, original_width = image.shape[:2]
