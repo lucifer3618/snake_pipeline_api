@@ -53,6 +53,83 @@ variable "container_registry_sku" {
   type        = string
 }
 
+# ------ Backend Container App Variables -------
+variable "backend_container_app_name" {
+  description = "The backend Container App name"
+  type        = string
+}
+
+variable "backend_container_name" {
+  description = "The backend application container name"
+  type        = string
+}
+
+variable "backend_container_repository" {
+  description = "The backend image repository within ACR"
+  type        = string
+}
+
+variable "backend_container_image_tag" {
+  description = "The initial backend image tag; later releases are managed by GitHub Actions"
+  type        = string
+}
+
+variable "backend_container_cpu" {
+  description = "CPU cores assigned to the backend container"
+  type        = number
+}
+
+variable "backend_container_memory" {
+  description = "Memory assigned to the backend container"
+  type        = string
+}
+
+variable "backend_min_replicas" {
+  description = "Minimum backend replica count"
+  type        = number
+}
+
+variable "backend_max_replicas" {
+  description = "Maximum backend replica count"
+  type        = number
+}
+
+variable "backend_target_port" {
+  description = "Backend container ingress port"
+  type        = number
+}
+
+# ------ DNS and Custom Domain Variables -------
+variable "parent_dns_zone_name" {
+  description = "The parent Azure DNS zone"
+  type        = string
+}
+
+variable "child_dns_zone_name" {
+  description = "The child Azure DNS zone retained from the live environment"
+  type        = string
+}
+
+variable "backend_dns_record_name" {
+  description = "The backend record name in the parent DNS zone"
+  type        = string
+}
+
+variable "backend_custom_domain_name" {
+  description = "The fully qualified backend custom domain"
+  type        = string
+}
+
+variable "parent_managed_certificate_name" {
+  description = "The existing managed certificate name for the parent domain"
+  type        = string
+}
+
+variable "backend_managed_certificate_name" {
+  description = "The existing managed certificate name for the backend custom domain"
+  type        = string
+}
+
 # ------ Identity Variables -------
 variable "app_registration_name" {
   description = "The name of the app registration"

@@ -33,3 +33,23 @@ output "container_registry_login_server" {
   value       = module.container_registry.login_server
   description = "The Azure Container Registry login server"
 }
+
+output "backend_container_app_id" {
+  value       = module.backend_container_app.id
+  description = "The backend Container App resource ID"
+}
+
+output "backend_container_app_fqdn" {
+  value       = module.backend_container_app.fqdn
+  description = "The default backend Container App hostname"
+}
+
+output "backend_custom_domain" {
+  value       = var.backend_custom_domain_name
+  description = "The backend custom domain hostname"
+}
+
+output "dns_zone_name_servers" {
+  value       = module.domain_name_zones.name_servers
+  description = "Azure DNS name servers for the managed zones"
+}

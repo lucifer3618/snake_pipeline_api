@@ -59,3 +59,87 @@ module "container_registry" {
 
   tags = var.tags
 }
+
+module "backend_container_app" {
+  source = "../../modules/backend_container_app"
+
+  name                         = var.backend_container_app_name
+  container_app_environment_id = module.container_apps_environment.container_apps_environment_id
+  resource_group_name          = module.resource_group.resource_group_name
+
+  registry_server   = module.container_registry.login_server
+  registry_identity = "system-environment"
+
+  container_name   = var.backend_container_name
+  container_image  = "${module.container_registry.login_server}/${var.backend_container_repository}:${var.backend_container_image_tag}"
+  container_cpu    = var.backend_container_cpu
+  container_memory = var.backend_container_memory
+
+  min_replicas                = var.backend_min_replicas
+  max_replicas                = var.backend_max_replicas
+  polling_interval_in_seconds = 30
+  cooldown_period_in_seconds  = 300
+  http_scale_rule_name        = "http-scaler"
+  http_concurrent_requests    = "10"
+
+  external_ingress_enabled   = true
+  allow_insecure_connections = false
+  target_port                = var.backend_target_port
+  ingress_transport          = "auto"
+
+  depends_on = [module.container_registry]
+}
+
+module "domain_name_zones" {
+  source = "../../modules/domain_name_zones"
+
+  resource_group_name          = module.resource_group.resource_group_name
+  container_app_id             = module.backend_container_app.id
+  container_app_environment_id = module.container_apps_environment.container_apps_environment_id
+
+  zones = {
+    parent = {
+      name = var.parent_dns_zone_name
+    }
+    child = {
+      name = var.child_dns_zone_name
+    }
+  }
+
+  cname_records = {
+    backend = {
+      zone_key = "parent"
+      name     = var.backend_dns_record_name
+      record   = module.backend_container_app.fqdn
+      ttl      = 3600
+    }
+  }
+
+  txt_records = {
+    backend_verification = {
+      zone_key = "parent"
+      name     = "asuid.${var.backend_dns_record_name}"
+      values   = [module.backend_container_app.custom_domain_verification_id]
+      ttl      = 3600
+    }
+  }
+
+  custom_domains = {
+    backend = {
+      name = var.backend_custom_domain_name
+    }
+  }
+
+  managed_certificates = {
+    parent = {
+      name                      = var.parent_managed_certificate_name
+      subject_name              = var.parent_dns_zone_name
+      domain_control_validation = "HTTP"
+    }
+    backend = {
+      name                      = var.backend_managed_certificate_name
+      subject_name              = var.backend_custom_domain_name
+      domain_control_validation = "CNAME"
+    }
+  }
+}
