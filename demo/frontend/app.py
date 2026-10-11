@@ -1,6 +1,6 @@
 import streamlit as st
 
-from components.loyout import render_header, render_conn_settings_bar
+from components.loyout import render_header, render_conn_settings_bar, render_connection_status
 from api.client import SnakeApiClient
 from utils.state import initialize_state
 
@@ -27,3 +27,5 @@ api_url, api_key = render_conn_settings_bar()
 # Create an instance of the SnakeApiClient with the provided API URL and API key.
 client = SnakeApiClient(base_url=api_url, api_key=api_key)
 
+# Render the connection status of the API and display relevant information on the side bar.
+render_connection_status(client)

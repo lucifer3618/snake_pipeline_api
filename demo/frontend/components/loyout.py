@@ -1,6 +1,8 @@
 import streamlit as st
 import os
 
+from api.client import SnakeApiClient, ApiError
+
 # Component used to render the header section
 def render_header() -> None:
     st.title("🐍 SnakeVision Lab")
@@ -33,3 +35,29 @@ def render_conn_settings_bar() -> tuple[str, str]:
             "API key", value=_get_secrets("SNAKE_API_KEY", ""), type="password"
         )
     return api_url, api_key
+
+# Render the connection status of the API and display relevant information on the side bar
+def render_connection_status(client: SnakeApiClient) -> None:
+    with st.sidebar:
+        st.divider()
+        if st.button("Check model status", width="stretch"):
+            try:
+                # Take the status of the pipeline and store it in the session state for later use
+                st.session_state.pipeline_status = client.pipeline_status()
+                st.success("Pipeline service reached successfully")
+            except ApiError as error:
+                st.error(str(error))
+        status = st.session_state.get("pipeline_status")
+        if status:
+            with st.container(horizontal=True, vertical_alignment="center", horizontal_alignment="center"):
+                st.markdown(f"**{'Ready' if status.get('ready') else 'Unavailable'}**")
+                st.write("🟢" if status.get("ready") else "🔴")
+            st.table(
+                {
+                    "Detector count": status.get("detector_count", 0),
+                    "Classifier count": status.get("classifier_count", 0),
+                    "Device": status.get("device", "unknown"),
+                }
+            )
+        st.divider()
+        st.caption("Research demonstration only. It is not medical advice or emergency assessment.")
