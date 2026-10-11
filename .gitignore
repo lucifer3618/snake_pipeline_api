@@ -107,45 +107,7 @@ override.tf.json
 terraform.rc
 
 # Terraform plan files may contain sensitive values.
-*.tfplan
-tfplan
-
-# -----------------------------------------------------------------------------
-# Flutter / Dart
-# -----------------------------------------------------------------------------
-.dart_tool/
-.packages
-.pub/
-.pub-cache/
-.flutter-plugins
-.flutter-plugins-dependencies
-**/build/
-**/doc/api/
-
-# Android
-**/android/.gradle/
-**/android/local.properties
-**/android/key.properties
-**/android/captures/
-**/android/app/debug/
-**/android/app/profile/
-**/android/app/release/
-*.aab
-*.apk
-
-# iOS / macOS
-**/ios/Pods/
-**/ios/.symlinks/
-**/ios/Flutter/ephemeral/
-**/ios/Flutter/Generated.xcconfig
-**/ios/Flutter/flutter_export_environment.sh
-**/macos/Pods/
-**/macos/Flutter/ephemeral/
-
-# Web and desktop generated plugin registrants
-**/web/.dart_tool/
-**/linux/flutter/ephemeral/
-**/windows/flutter/ephemeral/
+*.out
 
 # -----------------------------------------------------------------------------
 # Containers and local development
