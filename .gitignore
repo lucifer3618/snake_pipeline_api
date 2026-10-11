@@ -26,6 +26,7 @@ credentials/
 *.pfx
 *.jks
 *.keystore
+secrets.toml
 
 # -----------------------------------------------------------------------------
 # Python / FastAPI
