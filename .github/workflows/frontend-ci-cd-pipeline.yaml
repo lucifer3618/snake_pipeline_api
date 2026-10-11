@@ -73,3 +73,40 @@ jobs:
           cache-from: type=registry,ref=${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:buildcache
           cache-to: type=registry,ref=${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:buildcache,mode=max,compression=zstd
           provenance: mode=max
+
+  deploy:
+    name: Deploy to Azure Container Apps
+    runs-on: ubuntu-latest
+    environment: release
+    needs: build-push
+    timeout-minutes: 30
+    env:
+      ACR_NAME: ${{ vars.ACR_NAME }}
+      IMAGE_NAME: snake-pipeline-demo-frontend
+      IMAGE_TAG: ${{ needs.build-push.outputs.image_tag }}
+      CONTAINER_APP_NAME: ${{ vars.FRONTEND_CONTAINER_APP_NAME }}
+      RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+      AZURE_CORE_OUTPUT: none
+
+    steps:
+      - name: Validate release configuration
+        shell: bash
+        run: |
+          test -n "$ACR_NAME" || { echo "GitHub variable ACR_NAME is required"; exit 1; }
+          test -n "$CONTAINER_APP_NAME" || { echo "GitHub variable FRONTEND_CONTAINER_APP_NAME is required"; exit 1; }
+          test -n "$RESOURCE_GROUP" || { echo "GitHub variable AZURE_RESOURCE_GROUP is required"; exit 1; }
+
+      - name: Sign in to Azure with GitHub OIDC
+        uses: azure/login@v3
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy frontend image
+        uses: azure/container-apps-deploy-action@v1
+        with:
+          acrName: ${{ env.ACR_NAME }}
+          containerAppName: ${{ env.CONTAINER_APP_NAME }}
+          resourceGroup: ${{ env.RESOURCE_GROUP }}
+          imageToDeploy: ${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
