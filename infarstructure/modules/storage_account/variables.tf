@@ -31,3 +31,9 @@ variable "storage_containers" {
   }))
   default = {}
 }
+
+variable "tags" {
+  description = "A map of tags to assign to the storage account."
+  type        = map(string)
+  default     = {}
+}
