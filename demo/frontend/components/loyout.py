@@ -54,9 +54,16 @@ def render_connection_status(client: SnakeApiClient) -> None:
                 st.write("🟢" if status.get("ready") else "🔴")
             st.table(
                 {
-                    "Detector count": status.get("detector_count", 0),
-                    "Classifier count": status.get("classifier_count", 0),
-                    "Device": status.get("device", "unknown"),
+                    "Metric": [
+                        "Detector count",
+                        "Classifier count",
+                        "Device",
+                    ],
+                    "Value": [
+                        str(status.get("detector_count", 0)),
+                        str(status.get("classifier_count", 0)),
+                        str(status.get("device", "unknown")),
+                    ],
                 }
             )
         st.divider()
