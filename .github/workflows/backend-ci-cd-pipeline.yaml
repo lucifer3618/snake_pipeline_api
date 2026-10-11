@@ -22,6 +22,8 @@ jobs:
     runs-on: ubuntu-latest
     environment: release
     timeout-minutes: 90
+    outputs:
+      image_tag: ${{ steps.release.outputs.image_tag }}
     env:
       ACR_NAME: ${{ vars.ACR_NAME }}
       IMAGE_NAME: snake-pipeline-api
@@ -36,6 +38,17 @@ jobs:
         shell: bash
         run: |
           test -n "$ACR_NAME" || { echo "GitHub variable ACR_NAME is required"; exit 1; }
+
+      - name: Resolve image tag
+        id: release
+        shell: bash
+        run: |
+          image_tag="${GITHUB_REF_NAME#backend/}"
+          [[ "$image_tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || {
+            echo "Tag must match backend/v<major>.<minor>.<patch>"
+            exit 1
+          }
+          echo "image_tag=$image_tag" >> "$GITHUB_OUTPUT"
 
       - name: Sign in to Azure with GitHub OIDC
         uses: azure/login@v3
@@ -58,7 +71,7 @@ jobs:
           push: true
           platforms: linux/amd64
           tags: |
-            ${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.ref_name }}
+            ${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ steps.release.outputs.image_tag }}
             ${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }}
             ${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:latest
           cache-from: type=registry,ref=${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:buildcache
@@ -74,6 +87,7 @@ jobs:
     env:
       ACR_NAME: ${{ vars.ACR_NAME }}
       IMAGE_NAME: snake-pipeline-api
+      IMAGE_TAG: ${{ needs.build-push.outputs.image_tag }}
       CONTAINER_APP_NAME: ${{ vars.CONTAINER_APP_NAME }}
       RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
       AZURE_CORE_OUTPUT: none
@@ -99,4 +113,4 @@ jobs:
           acrName: ${{ env.ACR_NAME }}
           containerAppName: ${{ env.CONTAINER_APP_NAME }}
           resourceGroup: ${{ env.RESOURCE_GROUP }}
-          imageToDeploy: ${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.ref_name }}
+          imageToDeploy: ${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
