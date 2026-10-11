@@ -142,4 +142,20 @@ module "domain_name_zones" {
       domain_control_validation = "CNAME"
     }
   }
+
+  tags = var.tags
+}
+
+module "storage_account" {
+  source = "../../modules/storage_account"
+
+  storage_account_name             = var.storage_account_name
+  resource_group_name              = module.resource_group.resource_group_name
+  location                         = var.location
+  storage_account_tier             = var.storage_account_tier
+  storage_account_replication_type = var.storage_account_replication_type
+
+  storage_containers = var.storage_containers
+
+  tags = var.tags
 }

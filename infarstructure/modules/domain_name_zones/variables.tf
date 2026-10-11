@@ -63,3 +63,9 @@ variable "managed_certificates" {
   }))
   default = {}
 }
+
+variable "tags" {
+  description = "Tags to apply to all resources"
+  type        = map(string)
+  default     = {}
+}

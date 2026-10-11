@@ -53,3 +53,29 @@ output "dns_zone_name_servers" {
   value       = module.domain_name_zones.name_servers
   description = "Azure DNS name servers for the managed zones"
 }
+
+output "storage_account_name" {
+  value       = module.storage_account.storage_account_name
+  description = "The name of the storage account"
+}
+
+output "storage_account_id" {
+  value       = module.storage_account.storage_account_id
+  description = "The ID of the storage account"
+}
+
+output "storage_account_primary_connection_string" {
+  value       = module.storage_account.storage_account_primary_connection_string
+  description = "The primary connection string of the storage account"
+  sensitive   = true
+}
+
+output "storage_account_primary_blob_endpoint" {
+  value       = module.storage_account.storage_account_primary_blob_endpoint
+  description = "The primary blob endpoint of the storage account"
+}
+
+output "storage_account_primary_blob_host" {
+  value       = module.storage_account.storage_account_primary_blob_host
+  description = "The primary blob host of the storage account"
+}
