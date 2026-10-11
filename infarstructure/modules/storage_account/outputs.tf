@@ -1,5 +1,5 @@
 output "storage_account_id" {
-  value = azurerm_storage_account.this.id
+  value       = azurerm_storage_account.this.id
   description = "The ID of the storage account"
 }
 

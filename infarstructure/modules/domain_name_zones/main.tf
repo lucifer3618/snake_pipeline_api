@@ -4,7 +4,7 @@ resource "azurerm_dns_zone" "this" {
   name                = each.value.name
   resource_group_name = var.resource_group_name
 
-  tags                = var.tags
+  tags = var.tags
 }
 
 resource "azurerm_dns_cname_record" "this" {
@@ -16,7 +16,7 @@ resource "azurerm_dns_cname_record" "this" {
   ttl                 = each.value.ttl
   record              = each.value.record
 
-  tags                = var.tags
+  tags = var.tags
 }
 
 resource "azurerm_dns_txt_record" "this" {
@@ -27,7 +27,7 @@ resource "azurerm_dns_txt_record" "this" {
   resource_group_name = var.resource_group_name
   ttl                 = each.value.ttl
 
-  tags                = var.tags
+  tags = var.tags
 
   dynamic "record" {
     for_each = toset(each.value.values)
@@ -71,7 +71,7 @@ resource "azurerm_container_app_environment_managed_certificate" "this" {
   subject_name                 = each.value.subject_name
   domain_control_validation    = each.value.domain_control_validation
 
-  tags                         = var.tags
+  tags = var.tags
 
   depends_on = [azurerm_container_app_custom_domain.this]
 }
