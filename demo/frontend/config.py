@@ -28,3 +28,14 @@ SAFETY_THRESHOLDS = {
     "species_confidence": 0.40, "species_margin": 0.05,
     "agreement": 1.00, "maximum_entropy": 0.55,
 }
+
+SPECIES = {
+    "Bungarus caeruleus": "Common krait",
+    "Coelognathus helena": "Trinket snake",
+    "Craspedocephalus trigonocephalus": "Sri Lankan green pit viper",
+    "Daboia russelii": "Russell's viper",
+    "Hypnale hypnale": "Hump-nosed viper",
+    "Lycodon anamallensis": "Flowery wolf snake",
+    "Naja naja": "Indian cobra",
+    "Oligodon arnensis": "Banded kukri snake",
+}

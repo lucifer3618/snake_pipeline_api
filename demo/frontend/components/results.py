@@ -9,7 +9,7 @@ import pandas as pd
 import streamlit as st
 from PIL import Image
 
-from config import REASON_LABELS, SAFETY_THRESHOLDS
+from config import REASON_LABELS, SAFETY_THRESHOLDS, SPECIES
 from utils.standerdize import card, display_species, milliseconds, percentage, decode_artifact
 
 # This function takes in a result dictionary and renders a summary of the pipeline result
@@ -61,6 +61,7 @@ def _render_stages(image: Image.Image, result: dict[str, Any]) -> None:
     else:
         st.image(selected, caption=captions[stage], width="stretch")
 
+# This function contains the label, threshold, and condition for each safety check
 def _safety_rows(result: dict[str, Any]) -> list[tuple[str, str, bool]]:
     detector_threshold = (
         SAFETY_THRESHOLDS["secondary_detector_confidence"]
@@ -79,9 +80,10 @@ def _safety_rows(result: dict[str, Any]) -> list[tuple[str, str, bool]]:
         ("Normalized entropy", f"≤ {SAFETY_THRESHOLDS['maximum_entropy']:.2f}",
          (result.get("normalized_entropy") if result.get("normalized_entropy") is not None else 1)
          <= SAFETY_THRESHOLDS["maximum_entropy"]),
-        ("Species–venom consistency", "required", result.get("venom_consistent") is True),
+        ("Species-venom consistency", "required", result.get("venom_consistent") is True),
     ]
 
+# This function takes in a result dictionary and renders the safety gate section of the pipeline result
 def _render_safety_gate(result: dict[str, Any]) -> None:
     rows = _safety_rows(result)
     st.markdown(f"### Safety gate · {sum(ok for _, _, ok in rows)} / {len(rows)} passed")
@@ -94,6 +96,42 @@ def _render_safety_gate(result: dict[str, Any]) -> None:
             st.markdown("✅ **Pass**" if condition else "❌ **Fail**")
         st.divider()
 
+# Renders a bar chart showing the votes of each fold member for the predicted species
+def _render_vote_chart(result: dict[str, Any]) -> None:
+    votes = result.get("member_votes")
+    if not votes:
+        return
+    counts = Counter(votes)
+    frame = pd.DataFrame(
+        {
+            "Species": [display_species(SPECIES[key]) for key in SPECIES],
+            "Votes": [counts.get(index, 0) for index in range(len(SPECIES))],
+        }
+    ).set_index("Species")
+    st.markdown("#### Fold-member votes")
+    st.bar_chart(frame, horizontal=True, height=300, color="#61dfb3")
+
+# Function render the technical diagnmostics section
+def _render_diagnostics(result: dict[str, Any]) -> None:
+    with st.expander("Technical diagnostics", expanded=False):
+        metrics = st.columns(4)
+        metrics[0].metric("Detector stage", (result.get("detector_stage") or "—").replace("_", " ").title())
+        metrics[1].metric("Detector confidence", percentage(result.get("detector_confidence"), 2))
+        metrics[2].metric("Fold agreement", percentage(result.get("agreement"), 0))
+        entropy = result.get("normalized_entropy")
+        metrics[3].metric("Normalized entropy", "—" if entropy is None else f"{entropy:.4f}")
+        reduction = result.get("pixel_reduction")
+        if reduction:
+            st.caption(
+                f"ROI retained {reduction['retained_percentage']:.2f}% of the original area "
+                f"({reduction['roi_width']}x{reduction['roi_height']} from "
+                f"{reduction['original_width']}x{reduction['original_height']})."
+            )
+        _render_vote_chart(result)
+        st.markdown("#### Raw API response")
+        st.json(result)
+
+# Responsible for rendering entire pipeline result panel
 def render_pipeline_result(image: Image.Image, result: dict[str, Any]) -> None:
     with st.container(border=True):
         _render_summary(result)
@@ -113,3 +151,6 @@ def render_pipeline_result(image: Image.Image, result: dict[str, Any]) -> None:
                 "Runtime depends on the current hardware and includes detection, ROI extraction, "
                 "ensemble inference and safety checks."
             )
+
+    with st.container(border=True):
+        _render_diagnostics(result)
