@@ -27,6 +27,8 @@ The bundle uses the pipeline's built-in conservative thresholds and reports `thr
 - `GET /api/v1/health` — process liveness.
 - `GET /api/v1/predictions/status` — model readiness, selected device, and threshold source.
 - `POST /api/v1/predictions` — multipart upload using the `file` field.
+- `GET /api/v1/predictions/whole-image/status` — single-model whole-image readiness.
+- `POST /api/v1/predictions/whole-image` — Fold 4 MobileViT-XS whole-image comparison inference.
 
 Every `/api/v1` endpoint, including health and model status, requires the static key in the `X-API-Key` header. The service fails closed with HTTP 503 when `API_KEY` is not configured and returns HTTP 401 for a missing or invalid key. Swagger remains viewable at `/docs`; use its **Authorize** button to enter the key.
 
@@ -47,6 +49,14 @@ curl.exe -X POST "http://127.0.0.1:8000/api/v1/predictions?include_mask_overlay=
 The optional `mask_overlay`, `roi_crop`, and `gradcam_overlay` response objects contain `media_type: "image/jpeg"` and base64-encoded JPEG bytes in `data`. They are omitted by default to keep responses small. The mask overlay shows the raw mask produced by the successful instance-segmentation cascade stage; the ROI is the healed, context-expanded crop actually passed to the classifier; and the Grad-CAM overlay is the normalized average of the five fold-specific maps for the ensemble-predicted species.
 
 `processing_ms` measures only the core detector cascade, ROI extraction, classifier ensemble, and safety-gate execution. Optional image drawing, JPEG encoding, and Grad-CAM generation occur after this value is fixed and therefore never increase it. When at least one optional artifact is requested, `artifact_processing_ms` reports that additional work separately.
+
+For a single-model whole-image comparison, use:
+
+```powershell
+curl.exe -X POST "http://127.0.0.1:8000/api/v1/predictions/whole-image?include_gradcam=true" -H "X-API-Key: replace-with-a-long-random-secret" -F "file=@snake.jpg"
+```
+
+This endpoint uses the selected Fold 4 whole-image MobileViT-XS checkpoint. Its `processing_ms` covers only preprocessing and one-model inference. Optional Grad-CAM generation and JPEG encoding are reported separately through `artifact_processing_ms`. The comparison endpoint does not apply the detector-dependent ensemble safety gate.
 
 Every successful detection also returns `pixel_reduction`. It reports the exact original and ROI dimensions, total pixel counts, removed pixel count, retained percentage, and reduction percentage. Percentages describe spatial image area before the classifier resizes its input; they do not describe file-size compression.
 
