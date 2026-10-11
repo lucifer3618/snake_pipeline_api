@@ -1,6 +1,6 @@
 import streamlit as st
 
-from components.loyout import render_header
+from components.loyout import render_header, render_conn_settings_bar
 from utils.state import initialize_state
 
 
@@ -19,3 +19,6 @@ initialize_state()
 
 # Render the header of the app.
 render_header()
+
+# Render connection settings bar and extract api_key and api_url which are forwarded
+api_url, api_key = render_conn_settings_bar()
