@@ -61,7 +61,24 @@ jobs:
           terraform validate
 
       - name: Plan
-        run: terraform plan -no-color -out=tfplan
+        id: plan
+        run: |
+          set +e
+          terraform plan -detailed-exitcode -no-color -out=tfplan
+          plan_exit_code=$?
+          set -e
+
+          if [ "$plan_exit_code" -eq 1 ]; then
+            exit 1
+          fi
+
+          if [ "$plan_exit_code" -eq 2 ]; then
+            echo "has_changes=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
+            echo "No infrastructure changes to apply."
+          fi
 
       - name: Apply
+        if: steps.plan.outputs.has_changes == 'true'
         run: terraform apply -auto-approve tfplan
