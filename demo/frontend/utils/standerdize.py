@@ -1,6 +1,8 @@
 import io
 from PIL import Image, ImageOps
 import streamlit as st
+import base64
+from typing import Any
 
 # This function takes in image bytes, opens the image using PIL, applies EXIF orientation correction, and converts 
 # it to RGB format. It returns the processed PIL Image object.
@@ -31,3 +33,12 @@ def card(label: str, value: str, note: str = "") -> None:
     st.metric(label, value)
     if note:
         st.caption(note)
+
+# This function takes in an artifact dictionary and returns a PIL Image object.
+def decode_artifact(artifact: dict[str, Any] | None) -> Image.Image | None:
+    if not artifact or not artifact.get("data"):
+        return None
+    try:
+        return Image.open(io.BytesIO(base64.b64decode(artifact["data"]))).convert("RGB")
+    except Exception:
+        return None

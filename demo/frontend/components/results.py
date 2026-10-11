@@ -10,10 +10,11 @@ import streamlit as st
 from PIL import Image
 
 from config import REASON_LABELS
-from utils.standerdize import card, display_species, milliseconds, percentage
+from utils.standerdize import card, display_species, milliseconds, percentage, decode_artifact
 
-
+# This function takes in a result dictionary and renders a summary of the pipeline result
 def _render_summary(result: dict[str, Any]) -> None:
+    # ckeck if the decision is "ACCEPT" and store it in a variable
     accepted = result.get("decision") == "ACCEPT"
     columns = st.columns(4)
     with columns[0]:
@@ -32,7 +33,40 @@ def _render_summary(result: dict[str, Any]) -> None:
         reasons = result.get("reasons") or ["The configured safety conditions were not satisfied."]
         st.warning("Prediction withheld: " + " ".join(REASON_LABELS.get(reason, reason) for reason in reasons))
 
+# This function takes a PIL image object and results then map each stage of the pipeline
+def _render_stages(image: Image.Image, result: dict[str, Any]) -> None:
+    st.markdown("### Pipeline evidence")
+    stage = st.radio(
+        "Pipeline evidence stage",
+        ["Original image", "Mask overlay", "Extracted ROI", "Grad-CAM"],
+        horizontal=True,
+        label_visibility="collapsed",
+        key="pipeline_stage"
+    )
+    artifact_mapping = {
+        "Mask overlay": "mask_overlay", 
+        "Extracted ROI": "roi_crop", 
+        "Grad-CAM": "gradcam_overlay"
+    }
+    captions = {
+        "Original image": "Original uploaded image",
+        "Mask overlay": "Instance-segmentation mask returned by the successful detector stage",
+        "Extracted ROI": "Healed-mask crop with 1.30x proportional context",
+        "Grad-CAM": "Five-fold averaged attention map; qualitative evidence rather than an accuracy measure",
+    }
+    # if selected stage is "Original image" then display the original image else decode the artifact and display it
+    selected = image if stage == "Original image" else decode_artifact(result.get(artifact_mapping[stage]))
+    if selected is None:
+        st.info(f"{stage} was not requested. Enable it above and run the pipeline again.")
+    else:
+        st.image(selected, caption=captions[stage], width="stretch")
+
 
 def render_pipeline_result(image: Image.Image, result: dict[str, Any]) -> None:
     with st.container(border=True):
         _render_summary(result)
+
+    left, right = st.columns([2.1, 1], gap="large")
+    with left:
+        with st.container(border=True):
+            _render_stages(image, result)
