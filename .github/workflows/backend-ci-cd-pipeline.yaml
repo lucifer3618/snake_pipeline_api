@@ -3,7 +3,7 @@ name: Snake Pipeline API Release
 on:
   push:
     tags:
-      - "v*.*.*"
+      - "backend/v*.*.*"
 
 # OIDC avoids storing a long-lived Azure client secret in GitHub.
 permissions:
