@@ -5,7 +5,7 @@ resource "azurerm_storage_account" "this" {
   account_tier             = var.storage_account_tier
   account_replication_type = var.storage_account_replication_type
 
-  tags = tags
+  tags = var.tags
 }
 
 resource "azurerm_storage_container" "example" {
