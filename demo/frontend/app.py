@@ -1,6 +1,7 @@
 import streamlit as st
 
 from components.loyout import render_header, render_conn_settings_bar, render_connection_status
+from components.evidence import render_research_evidence
 from api.client import SnakeApiClient
 from utils.state import initialize_state
 
@@ -29,3 +30,7 @@ client = SnakeApiClient(base_url=api_url, api_key=api_key)
 
 # Render the connection status of the API and display relevant information on the side bar.
 render_connection_status(client)
+
+# Render the research evidence section of the app, which displays validated quantitative evidence
+# from the matched five-fold experiment.
+render_research_evidence()
