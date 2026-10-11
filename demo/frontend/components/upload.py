@@ -54,7 +54,7 @@ def render_upload_panel() -> UploadSelection:
         if upload is not None:
             options = st.columns([2.2, 1, 1, 1])
             options[0].markdown(
-                f"**{upload.name}**  \n{image.width if image else '—'} × "
+                f"**{upload.name}**  \n{image.width if image else '—'} x "
                 f"{image.height if image else '—'} pixels · {len(image_bytes or b'') / 1024:.1f} KB"
             )
             include_mask = options[1].checkbox("Mask overlay", value=True)
