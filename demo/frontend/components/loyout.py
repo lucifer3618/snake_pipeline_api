@@ -66,3 +66,18 @@ def render_connection_status(client: SnakeApiClient) -> None:
             )
         st.divider()
         st.caption("Research demonstration only. It is not medical advice or emergency assessment.")
+        st.markdown(
+            """
+            <a href="/.auth/logout" target="_self" style="
+                display: block;
+                width: 100%;
+                padding: 0.5rem 0.75rem;
+                border: 1px solid rgba(128, 128, 128, 0.4);
+                border-radius: 0.5rem;
+                color: inherit;
+                text-align: center;
+                text-decoration: none;
+            ">Log out</a>
+            """,
+            unsafe_allow_html=True,
+        )
