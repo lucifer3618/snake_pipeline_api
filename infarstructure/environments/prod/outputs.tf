@@ -49,6 +49,21 @@ output "backend_custom_domain" {
   description = "The backend custom domain hostname"
 }
 
+output "frontend_container_app_id" {
+  value       = module.frontend_container_app.id
+  description = "The frontend Container App resource ID"
+}
+
+output "frontend_container_app_fqdn" {
+  value       = module.frontend_container_app.fqdn
+  description = "The default frontend Container App hostname"
+}
+
+output "frontend_custom_domain" {
+  value       = var.frontend_custom_domain_name
+  description = "The frontend custom domain hostname"
+}
+
 output "dns_zone_name_servers" {
   value       = module.domain_name_zones.name_servers
   description = "Azure DNS name servers for the managed zones"

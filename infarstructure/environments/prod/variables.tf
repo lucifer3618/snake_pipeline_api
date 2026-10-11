@@ -99,6 +99,52 @@ variable "backend_target_port" {
   type        = number
 }
 
+# ------ Frontend Container App Variables -------
+variable "frontend_container_app_name" {
+  description = "The frontend Container App name"
+  type        = string
+}
+
+variable "frontend_container_name" {
+  description = "The frontend application container name"
+  type        = string
+}
+
+variable "frontend_container_repository" {
+  description = "The frontend image repository within ACR"
+  type        = string
+}
+
+variable "frontend_container_image_tag" {
+  description = "The initial frontend image tag; later releases are managed by GitHub Actions"
+  type        = string
+}
+
+variable "frontend_container_cpu" {
+  description = "CPU cores assigned to the frontend container"
+  type        = number
+}
+
+variable "frontend_container_memory" {
+  description = "Memory assigned to the frontend container"
+  type        = string
+}
+
+variable "frontend_min_replicas" {
+  description = "Minimum frontend replica count"
+  type        = number
+}
+
+variable "frontend_max_replicas" {
+  description = "Maximum frontend replica count"
+  type        = number
+}
+
+variable "frontend_target_port" {
+  description = "Frontend container ingress port"
+  type        = number
+}
+
 # ------ DNS and Custom Domain Variables -------
 variable "parent_dns_zone_name" {
   description = "The parent Azure DNS zone"
@@ -120,6 +166,16 @@ variable "backend_custom_domain_name" {
   type        = string
 }
 
+variable "frontend_dns_record_name" {
+  description = "The frontend record name in the parent DNS zone"
+  type        = string
+}
+
+variable "frontend_custom_domain_name" {
+  description = "The fully qualified frontend custom domain"
+  type        = string
+}
+
 variable "parent_managed_certificate_name" {
   description = "The existing managed certificate name for the parent domain"
   type        = string
@@ -127,6 +183,11 @@ variable "parent_managed_certificate_name" {
 
 variable "backend_managed_certificate_name" {
   description = "The existing managed certificate name for the backend custom domain"
+  type        = string
+}
+
+variable "frontend_managed_certificate_name" {
+  description = "The managed certificate name for the frontend custom domain"
   type        = string
 }
 

@@ -90,11 +90,46 @@ module "container_app" {
   depends_on = [module.container_registry]
 }
 
+module "frontend_container_app" {
+  source = "../../modules/container_app"
+
+  name                         = var.frontend_container_app_name
+  container_app_environment_id = module.container_apps_environment.container_apps_environment_id
+  resource_group_name          = module.resource_group.resource_group_name
+
+  registry_server   = module.container_registry.login_server
+  registry_identity = "system-environment"
+
+  container_name   = var.frontend_container_name
+  container_image  = "${module.container_registry.login_server}/${var.frontend_container_repository}:${var.frontend_container_image_tag}"
+  container_cpu    = var.frontend_container_cpu
+  container_memory = var.frontend_container_memory
+
+  environment_variables = {
+    SNAKE_API_URL = "https://${var.backend_custom_domain_name}/api/v1"
+  }
+
+  min_replicas                = var.frontend_min_replicas
+  max_replicas                = var.frontend_max_replicas
+  polling_interval_in_seconds = 30
+  cooldown_period_in_seconds  = 300
+  http_scale_rule_name        = "http-scaler"
+  http_concurrent_requests    = "10"
+
+  external_ingress_enabled   = true
+  allow_insecure_connections = false
+  target_port                = var.frontend_target_port
+  ingress_transport          = "auto"
+
+  tags = var.tags
+
+  depends_on = [module.container_registry]
+}
+
 module "domain_name_zones" {
   source = "../../modules/domain_name_zones"
 
   resource_group_name          = module.resource_group.resource_group_name
-  container_app_id             = module.container_app.id
   container_app_environment_id = module.container_apps_environment.container_apps_environment_id
 
   zones = {
@@ -113,6 +148,12 @@ module "domain_name_zones" {
       record   = module.container_app.fqdn
       ttl      = 3600
     }
+    frontend = {
+      zone_key = "parent"
+      name     = var.frontend_dns_record_name
+      record   = module.frontend_container_app.fqdn
+      ttl      = 3600
+    }
   }
 
   txt_records = {
@@ -122,11 +163,22 @@ module "domain_name_zones" {
       values   = [module.container_app.custom_domain_verification_id]
       ttl      = 3600
     }
+    frontend_verification = {
+      zone_key = "parent"
+      name     = "asuid.${var.frontend_dns_record_name}"
+      values   = [module.frontend_container_app.custom_domain_verification_id]
+      ttl      = 3600
+    }
   }
 
   custom_domains = {
     backend = {
-      name = var.backend_custom_domain_name
+      name             = var.backend_custom_domain_name
+      container_app_id = module.container_app.id
+    }
+    frontend = {
+      name             = var.frontend_custom_domain_name
+      container_app_id = module.frontend_container_app.id
     }
   }
 
@@ -139,6 +191,11 @@ module "domain_name_zones" {
     backend = {
       name                      = var.backend_managed_certificate_name
       subject_name              = var.backend_custom_domain_name
+      domain_control_validation = "CNAME"
+    }
+    frontend = {
+      name                      = var.frontend_managed_certificate_name
+      subject_name              = var.frontend_custom_domain_name
       domain_control_validation = "CNAME"
     }
   }

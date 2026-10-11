@@ -3,11 +3,6 @@ variable "resource_group_name" {
   type        = string
 }
 
-variable "container_app_id" {
-  description = "The Container App resource ID"
-  type        = string
-}
-
 variable "container_app_environment_id" {
   description = "The Container Apps environment resource ID"
   type        = string
@@ -48,7 +43,8 @@ variable "txt_records" {
 variable "custom_domains" {
   description = "Container App custom-domain bindings keyed by a stable logical name"
   type = map(object({
-    name = string
+    name             = string
+    container_app_id = string
   }))
   default = {}
 }

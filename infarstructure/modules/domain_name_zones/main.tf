@@ -47,7 +47,7 @@ resource "azurerm_container_app_custom_domain" "this" {
   for_each = var.custom_domains
 
   name             = each.value.name
-  container_app_id = var.container_app_id
+  container_app_id = each.value.container_app_id
 
   depends_on = [
     azurerm_dns_cname_record.this,
