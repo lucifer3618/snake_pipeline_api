@@ -9,7 +9,7 @@ import pandas as pd
 import streamlit as st
 from PIL import Image
 
-from config import REASON_LABELS
+from config import REASON_LABELS, SAFETY_THRESHOLDS
 from utils.standerdize import card, display_species, milliseconds, percentage, decode_artifact
 
 # This function takes in a result dictionary and renders a summary of the pipeline result
@@ -61,6 +61,38 @@ def _render_stages(image: Image.Image, result: dict[str, Any]) -> None:
     else:
         st.image(selected, caption=captions[stage], width="stretch")
 
+def _safety_rows(result: dict[str, Any]) -> list[tuple[str, str, bool]]:
+    detector_threshold = (
+        SAFETY_THRESHOLDS["secondary_detector_confidence"]
+        if result.get("detector_stage") == "secondary_retry"
+        else SAFETY_THRESHOLDS["detector_confidence"]
+    )
+    return [
+        ("Detector confidence", f"≥ {detector_threshold:.2f}",
+         (result.get("detector_confidence") or 0) >= detector_threshold),
+        ("Species confidence", f"≥ {SAFETY_THRESHOLDS['species_confidence']:.2f}",
+         (result.get("species_confidence") or 0) >= SAFETY_THRESHOLDS["species_confidence"]),
+        ("Prediction margin", f"≥ {SAFETY_THRESHOLDS['species_margin']:.2f}",
+         (result.get("species_margin") or 0) >= SAFETY_THRESHOLDS["species_margin"]),
+        ("Fold agreement", f"= {SAFETY_THRESHOLDS['agreement']:.2f}",
+         (result.get("agreement") or 0) >= SAFETY_THRESHOLDS["agreement"]),
+        ("Normalized entropy", f"≤ {SAFETY_THRESHOLDS['maximum_entropy']:.2f}",
+         (result.get("normalized_entropy") if result.get("normalized_entropy") is not None else 1)
+         <= SAFETY_THRESHOLDS["maximum_entropy"]),
+        ("Species–venom consistency", "required", result.get("venom_consistent") is True),
+    ]
+
+def _render_safety_gate(result: dict[str, Any]) -> None:
+    rows = _safety_rows(result)
+    st.markdown(f"### Safety gate · {sum(ok for _, _, ok in rows)} / {len(rows)} passed")
+    for label, threshold, condition in rows:
+        left, right = st.columns([4, 1])
+        with left:
+            st.markdown(f"**{label}**")
+            st.caption(threshold)
+        with right:
+            st.markdown("✅ **Pass**" if condition else "❌ **Fail**")
+        st.divider()
 
 def render_pipeline_result(image: Image.Image, result: dict[str, Any]) -> None:
     with st.container(border=True):
@@ -70,3 +102,14 @@ def render_pipeline_result(image: Image.Image, result: dict[str, Any]) -> None:
     with left:
         with st.container(border=True):
             _render_stages(image, result)
+    with right:
+        with st.container(border=True):
+            _render_safety_gate(result)
+            st.markdown("#### Timing boundary")
+            st.metric("Core processing", milliseconds(result.get("processing_ms")))
+            if result.get("artifact_processing_ms") is not None:
+                st.metric("Optional artifacts", milliseconds(result.get("artifact_processing_ms")))
+            st.caption(
+                "Runtime depends on the current hardware and includes detection, ROI extraction, "
+                "ensemble inference and safety checks."
+            )

@@ -21,3 +21,10 @@ REASON_LABELS = {
     "high_predictive_entropy": "The ensemble prediction was too uncertain.",
     "species_venom_contradiction": "Species and auxiliary venom predictions were inconsistent.",
 }
+
+# Safety thresholds for the pipeline
+SAFETY_THRESHOLDS = {
+    "detector_confidence": 0.35, "secondary_detector_confidence": 0.40,
+    "species_confidence": 0.40, "species_margin": 0.05,
+    "agreement": 1.00, "maximum_entropy": 0.55,
+}
