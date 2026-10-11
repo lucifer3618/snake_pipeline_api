@@ -1,0 +1,67 @@
+name: Terraform Infrastructure Deployment
+
+on:
+  push:
+    tags:
+      - "infrastructure/v*.*.*"
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: terraform-production
+  cancel-in-progress: false
+
+env:
+  TF_IN_AUTOMATION: true
+  TF_INPUT: false
+  AZURE_CORE_OUTPUT: none
+
+defaults:
+  run:
+    shell: bash
+    working-directory: infarstructure/environments/prod
+
+jobs:
+  terraform-deploy:
+    name: Plan and Apply
+    runs-on: ubuntu-latest
+    environment: release
+    timeout-minutes: 45
+    env:
+      TFVARS_BASE64: ${{ secrets.TERRAFORM_TFVARS_BASE64 }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: 1.15.4
+          terraform_wrapper: false
+
+      - name: Sign in to Azure
+        uses: azure/login@v3
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Create variable file
+        run: |
+          test -n "$TFVARS_BASE64" || { echo "TERRAFORM_TFVARS_BASE64 is required"; exit 1; }
+          printf '%s' "$TFVARS_BASE64" | base64 --decode > terraform.tfvars
+
+      - name: Validate configuration
+        run: |
+          terraform fmt -check -recursive
+          terraform init -reconfigure
+          terraform validate
+
+      - name: Plan
+        run: terraform plan -no-color -out=tfplan
+
+      - name: Apply
+        run: terraform apply -auto-approve tfplan
