@@ -2,6 +2,7 @@ import streamlit as st
 
 from components.loyout import render_header, render_conn_settings_bar, render_connection_status
 from components.evidence import render_research_evidence
+from components.upload import render_upload_panel
 from api.client import SnakeApiClient
 from utils.state import initialize_state
 
@@ -34,3 +35,6 @@ render_connection_status(client)
 # Render the research evidence section of the app, which displays validated quantitative evidence
 # from the matched five-fold experiment.
 render_research_evidence()
+
+# Render the upload panel, which allows users to upload snake images and configure inference options.
+selection = render_upload_panel()
