@@ -34,7 +34,7 @@ import {
 }
 
 import {
-  to = module.backend_container_app.azurerm_container_app.this
+  to = module.container_app.azurerm_container_app.this
   id = "/subscriptions/0f56e0ee-95ca-451c-b60d-43a7b85beb63/resourceGroups/snake_pipeline_rg/providers/Microsoft.App/containerApps/snake-pipeline"
 }
 

@@ -35,12 +35,12 @@ output "container_registry_login_server" {
 }
 
 output "backend_container_app_id" {
-  value       = module.backend_container_app.id
+  value       = module.container_app.id
   description = "The backend Container App resource ID"
 }
 
 output "backend_container_app_fqdn" {
-  value       = module.backend_container_app.fqdn
+  value       = module.container_app.fqdn
   description = "The default backend Container App hostname"
 }
 

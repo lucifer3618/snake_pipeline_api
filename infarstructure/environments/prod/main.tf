@@ -60,8 +60,8 @@ module "container_registry" {
   tags = var.tags
 }
 
-module "backend_container_app" {
-  source = "../../modules/backend_container_app"
+module "container_app" {
+  source = "../../modules/container_app"
 
   name                         = var.backend_container_app_name
   container_app_environment_id = module.container_apps_environment.container_apps_environment_id
@@ -94,7 +94,7 @@ module "domain_name_zones" {
   source = "../../modules/domain_name_zones"
 
   resource_group_name          = module.resource_group.resource_group_name
-  container_app_id             = module.backend_container_app.id
+  container_app_id             = module.container_app.id
   container_app_environment_id = module.container_apps_environment.container_apps_environment_id
 
   zones = {
@@ -110,7 +110,7 @@ module "domain_name_zones" {
     backend = {
       zone_key = "parent"
       name     = var.backend_dns_record_name
-      record   = module.backend_container_app.fqdn
+      record   = module.container_app.fqdn
       ttl      = 3600
     }
   }
@@ -119,7 +119,7 @@ module "domain_name_zones" {
     backend_verification = {
       zone_key = "parent"
       name     = "asuid.${var.backend_dns_record_name}"
-      values   = [module.backend_container_app.custom_domain_verification_id]
+      values   = [module.container_app.custom_domain_verification_id]
       ttl      = 3600
     }
   }
