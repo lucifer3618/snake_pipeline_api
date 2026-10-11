@@ -31,9 +31,7 @@ def render_conn_settings_bar() -> tuple[str, str]:
             "API base URL",
             value=_get_secrets("SNAKE_API_URL", "http://127.0.0.1:8080/api/v1"),
         )
-        api_key = st.text_input(
-            "API key", value=_get_secrets("SNAKE_API_KEY", ""), type="password"
-        )
+        api_key = _get_secrets("SNAKE_API_KEY", "")
     return api_url, api_key
 
 # Render the connection status of the API and display relevant information on the side bar
