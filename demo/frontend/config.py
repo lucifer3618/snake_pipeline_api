@@ -30,12 +30,12 @@ SAFETY_THRESHOLDS = {
 }
 
 SPECIES = {
-    "Bungarus caeruleus": "Common krait",
-    "Coelognathus helena": "Trinket snake",
-    "Craspedocephalus trigonocephalus": "Sri Lankan green pit viper",
-    "Daboia russelii": "Russell's viper",
-    "Hypnale hypnale": "Hump-nosed viper",
-    "Lycodon anamallensis": "Flowery wolf snake",
-    "Naja naja": "Indian cobra",
-    "Oligodon arnensis": "Banded kukri snake",
+    "bungarus_caeruleus": "Common krait",
+    "coelognathus_helena": "Trinket snake",
+    "craspedocephalus_trigonocephalus": "Sri Lankan green pit viper",
+    "daboia_russelii": "Russell's viper",
+    "hypnale_hypnale": "Hump-nosed viper",
+    "lycodon_aulicus": "Flowery wolf snake",
+    "naja_naja": "Indian cobra",
+    "oligodon_arnensis": "Banded kukri snake",
 }

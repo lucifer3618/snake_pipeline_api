@@ -18,7 +18,7 @@ def _render_summary(result: dict[str, Any]) -> None:
     accepted = result.get("decision") == "ACCEPT"
     columns = st.columns(4)
     with columns[0]:
-        card("Candidate species", display_species(result.get("predicted_species")), "Eight-class ensemble output")
+        card("Candidate species", display_species(SPECIES[result.get("predicted_species")]), "Eight-class ensemble output")
     with columns[1]:
         card("Species confidence", percentage(result.get("species_confidence"), 2), "Mean ensemble probability")
     with columns[2]:
