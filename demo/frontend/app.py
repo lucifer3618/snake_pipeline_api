@@ -1,6 +1,6 @@
 import streamlit as st
 
-from components.loyout import render_header, render_conn_settings_bar, render_connection_status
+from components.loyout import render_header, render_conn_settings_bar, render_connection_status, render_footer
 from components.evidence import render_research_evidence
 from components.upload import render_upload_panel
 from api.client import SnakeApiClient, ApiError
@@ -62,3 +62,6 @@ if selection.image is not None:
     else:
         with st.container(border=True):
             st.image(selection.image, caption="Ready for inference", width="stretch")
+
+# Render the footer section
+render_footer()

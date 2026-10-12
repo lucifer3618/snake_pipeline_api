@@ -81,3 +81,11 @@ def render_connection_status(client: SnakeApiClient) -> None:
             """,
             unsafe_allow_html=True,
         )
+
+# Footer section
+def render_footer() -> None:
+    st.divider()
+    st.caption(
+        "Research demonstration only. Do not use the output to delay emergency treatment, "
+        "handle a snake, or replace qualified identification."
+    )
