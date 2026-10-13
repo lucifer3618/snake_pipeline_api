@@ -1,4 +1,4 @@
-"""Train MobileViT with the unchanged classifier CV loop and explicit preprocessing."""
+# Train MobileViT with the unchanged classifier CV loop and explicit preprocessing.
 import argparse
 import csv
 import importlib.util
@@ -28,7 +28,7 @@ def load_baseline_trainer():
 
 
 class MobileViTClassifier(nn.Module):
-    """Adapter exposing the interface expected by the shared training loop."""
+    # Adapter exposing the interface expected by the shared training loop.
     def __init__(self, model_name, classes, pretrained=True, dropout=.2):
         super().__init__()
         try:
@@ -72,6 +72,7 @@ def transform(training, size, augmentation, mean, std, interpolation):
 def mobilevit_loaders(fold_dir, batch, workers, image_size, augmentation, mean, std, interpolation):
     root = Path(fold_dir)
     datasets = {}
+
     for split in ("train", "validation", "calibration", "test"):
         if (root / split).is_dir():
             datasets[split] = ImageFolder(
@@ -80,11 +81,14 @@ def mobilevit_loaders(fold_dir, batch, workers, image_size, augmentation, mean, 
             )
             if datasets[split].classes != SPECIES:
                 raise ValueError(f"Unexpected class folders in {root / split}: {datasets[split].classes}")
+            
     if not {"train", "validation"}.issubset(datasets):
         raise ValueError("fold directory needs train/ and validation/")
+    
     loaders = {name: DataLoader(dataset, batch_size=batch, shuffle=name == "train",
                num_workers=workers, pin_memory=torch.cuda.is_available(),
                persistent_workers=workers > 0) for name, dataset in datasets.items()}
+    
     return loaders, datasets
 
 
@@ -195,31 +199,45 @@ def main():
         fold_dir = run_output / internal_experiment / f"fold_{fold}"
         metrics_path = fold_dir / "validation_metrics.json"
         checkpoint_path = fold_dir / "best.pt"
+
         if metrics_path.exists() and checkpoint_path.exists() and not args.overwrite:
             print(f"Skipping completed {experiment}, fold {fold}")
             metrics = json.loads(metrics_path.read_text(encoding="utf-8"))
         else:
             metrics = trainer.train_one(args.model, fold, args, device)
+
         checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
         checkpoint.update({"model_family": "timm_mobilevit", "timm_model": args.model,
                            "preprocessing": args.preprocessing, "image_size": args.image_size,
                            "normalization_mean": args.mean, "normalization_std": args.std,
                            "interpolation": args.interpolation})
+        
         torch.save(checkpoint, checkpoint_path)
+
         metrics.update({"model": args.model, "preprocessing": args.preprocessing,
                         "image_size": args.image_size, "interpolation": args.interpolation})
+        
         metrics_path.write_text(json.dumps(metrics, indent=2), encoding="utf-8")
         log_hparams(original_output, experiment, fold, args, metrics)
         results.append(metrics)
 
     fold_summary = original_output / f"{experiment}__fold_results.csv"
+
     with fold_summary.open("w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=results[0].keys())
-        writer.writeheader(); writer.writerows(results)
+        writer.writeheader()
+        writer.writerows(results)
+
     scores = np.asarray([result["macro_f1"] for result in results], dtype=float)
-    summary = {"experiment": experiment, "model": args.model, "preprocessing": args.preprocessing,
-               "completed_folds": len(scores), "mean_macro_f1": float(scores.mean()),
-               "std_macro_f1": float(scores.std(ddof=1)) if len(scores) > 1 else 0.0}
+
+    summary = {
+        "experiment": experiment,
+        "model": args.model,
+        "preprocessing": args.preprocessing,
+        "completed_folds": len(scores),
+        "mean_macro_f1": float(scores.mean()),
+        "std_macro_f1": float(scores.std(ddof=1)) if len(scores) > 1 else 0.0}
+    
     summary_path = original_output / f"{experiment}__summary.json"
     summary_path.write_text(json.dumps(summary, indent=2), encoding="utf-8")
     print(json.dumps(summary, indent=2))

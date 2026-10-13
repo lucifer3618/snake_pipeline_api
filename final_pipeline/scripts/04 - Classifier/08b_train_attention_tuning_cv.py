@@ -23,39 +23,6 @@ def load_baseline_trainer():
     return module
 
 
-def parser():
-    result = argparse.ArgumentParser(
-        description="Predeclared five-fold grid search for MobileNetV2 SE and CBAM parameters."
-    )
-    result.add_argument("--data-root", required=True)
-    result.add_argument("--output", required=True)
-    result.add_argument("--reductions", nargs="+", type=int, default=[4, 8, 16, 32])
-    result.add_argument("--cbam-kernels", nargs="+", type=int, default=[3, 7])
-    result.add_argument("--folds", nargs="+", type=int, default=[0, 1, 2, 3, 4])
-    result.add_argument("--epochs", type=int, default=25)
-    result.add_argument("--batch", type=int, default=32)
-    result.add_argument("--workers", type=int, default=4)
-    result.add_argument("--image-size", type=int, default=224)
-    result.add_argument("--lr", type=float, default=3e-4)
-    result.add_argument("--scheduler", choices=["cosine", "none"], default="cosine")
-    result.add_argument("--min-lr", type=float, default=1e-6)
-    result.add_argument("--weight-decay", type=float, default=1e-4)
-    result.add_argument("--dropout", type=float, default=.2)
-    result.add_argument("--label-smoothing", type=float, default=0.0)
-    result.add_argument("--image-augmentation", choices=["none", "basic", "autoaugment"], default="basic")
-    result.add_argument("--batch-augmentation", choices=["none", "mixup", "cutmix", "random"], default="none")
-    result.add_argument("--mix-alpha", type=float, default=.2)
-    result.add_argument("--mix-probability", type=float, default=.25)
-    result.add_argument("--patience", type=int, default=5)
-    result.add_argument("--seed", type=int, default=42)
-    result.add_argument("--freeze-backbone-epochs", type=int, default=2)
-    result.add_argument("--tracker", choices=["tensorboard", "none"], default="tensorboard")
-    result.add_argument("--pretrained", action="store_true")
-    result.add_argument("--amp", action="store_true")
-    result.add_argument("--overwrite", action="store_true")
-    return result
-
-
 def validate(args):
     if any(value <= 0 for value in args.reductions):
         raise SystemExit("All reduction ratios must be positive")
@@ -66,8 +33,37 @@ def validate(args):
 
 
 def main():
-    args = parser().parse_args()
-    validate(args)
+    parser = argparse.ArgumentParser(
+            description="Predeclared five-fold grid search for MobileNetV2 SE and CBAM parameters."
+        )
+    parser.add_argument("--data-root", required=True)
+    parser.add_argument("--output", required=True)
+    parser.add_argument("--reductions", nargs="+", type=int, default=[4, 8, 16, 32])
+    parser.add_argument("--cbam-kernels", nargs="+", type=int, default=[3, 7])
+    parser.add_argument("--folds", nargs="+", type=int, default=[0, 1, 2, 3, 4])
+    parser.add_argument("--epochs", type=int, default=25)
+    parser.add_argument("--batch", type=int, default=32)
+    parser.add_argument("--workers", type=int, default=4)
+    parser.add_argument("--image-size", type=int, default=224)
+    parser.add_argument("--lr", type=float, default=3e-4)
+    parser.add_argument("--scheduler", choices=["cosine", "none"], default="cosine")
+    parser.add_argument("--min-lr", type=float, default=1e-6)
+    parser.add_argument("--weight-decay", type=float, default=1e-4)
+    parser.add_argument("--dropout", type=float, default=.2)
+    parser.add_argument("--label-smoothing", type=float, default=0.0)
+    parser.add_argument("--image-augmentation", choices=["none", "basic", "autoaugment"], default="basic")
+    parser.add_argument("--batch-augmentation", choices=["none", "mixup", "cutmix", "random"], default="none")
+    parser.add_argument("--mix-alpha", type=float, default=.2)
+    parser.add_argument("--mix-probability", type=float, default=.25)
+    parser.add_argument("--patience", type=int, default=5)
+    parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--freeze-backbone-epochs", type=int, default=2)
+    parser.add_argument("--tracker", choices=["tensorboard", "none"], default="tensorboard")
+    parser.add_argument("--pretrained", action="store_true")
+    parser.add_argument("--amp", action="store_true")
+    parser.add_argument("--overwrite", action="store_true")
+    args = parser.parse_args()
+    
     trainer = load_baseline_trainer()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     configurations = [("mobilenet_v2_se", reduction, 7) for reduction in args.reductions]
@@ -122,24 +118,33 @@ def main():
     output = Path(args.output)
     output.mkdir(parents=True, exist_ok=True)
     fold_summary = output / "attention_fold_results.csv"
+
     with fold_summary.open("w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=results[0].keys())
         writer.writeheader(); writer.writerows(results)
 
     ranked = []
+
     for config_id in sorted({row["attention_config"] for row in results}):
         selected = [row for row in results if row["attention_config"] == config_id]
         scores = np.asarray([row["macro_f1"] for row in selected], dtype=float)
-        ranked.append({"attention_config": config_id, "architecture": selected[0]["architecture"],
+
+        ranked.append({"attention_config": config_id,
+                       "architecture": selected[0]["architecture"],
                        "attention_reduction": selected[0]["attention_reduction"],
-                       "cbam_kernel": selected[0]["cbam_kernel"], "completed_folds": len(scores),
+                       "cbam_kernel": selected[0]["cbam_kernel"],
+                       "completed_folds": len(scores),
                        "mean_macro_f1": scores.mean(),
                        "std_macro_f1": scores.std(ddof=1) if len(scores) > 1 else 0.0})
+        
     ranked.sort(key=lambda row: (-row["mean_macro_f1"], row["attention_config"]))
     ranked_summary = output / "attention_tuning_summary.csv"
+
     with ranked_summary.open("w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=ranked[0].keys())
-        writer.writeheader(); writer.writerows(ranked)
+        writer.writeheader()
+        writer.writerows(ranked)
+        
     print(f"\nRanked results saved to {ranked_summary}")
     for row in ranked:
         print(f"{row['attention_config']}: {row['mean_macro_f1']:.4f} +/- {row['std_macro_f1']:.4f}")

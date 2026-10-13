@@ -102,6 +102,7 @@ def main():
     trainer.build_model = lambda architecture, classes, pretrained=True, dropout=.2, head_type="linear", \
         arc_scale=64., arc_margin=.5, dual_head=None: build_mobilevit(
             args.model, classes, pretrained, dropout, head_type, arc_scale, arc_margin, True)
+    
     trainer.loaders = lambda fold_dir, batch, workers, image_size, augmentation: mobilevit_loaders(
         fold_dir, batch, workers, image_size, augmentation, args.mean, args.std, args.interpolation)
 
@@ -115,31 +116,43 @@ def main():
     for loss in args.losses:
         args.loss = loss
         experiment = f"{args.model}__dual__{loss}"
+
         for fold in args.folds:
             fold_dir = output / experiment / f"fold_{fold}"
             metrics_path = fold_dir / "validation_metrics.json"
             checkpoint_path = fold_dir / "best.pt"
+
             if metrics_path.exists() and checkpoint_path.exists() and not args.overwrite:
                 print(f"Skipping completed {experiment}, fold {fold}")
                 metrics = json.loads(metrics_path.read_text(encoding="utf-8"))
             else:
                 print(f"\nRunning {experiment}, fold {fold}", flush=True)
                 metrics = trainer.train_one(args.model, fold, args, device)
+
             if not all(math.isfinite(float(metrics[key])) for key in
                        ("accuracy", "macro_precision", "macro_recall", "macro_f1")):
                 raise SystemExit(f"Non-finite validation metric in {experiment}, fold {fold}; run rejected")
 
             checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
-            checkpoint.update({"model_family": "timm_mobilevit", "timm_model": args.model,
+
+            checkpoint.update({"model_family": "timm_mobilevit",
+                               "timm_model": args.model,
                                "timm_version": args.timm_version,
-                               "preprocessing": args.preprocessing, "image_size": args.image_size,
-                               "normalization_mean": args.mean, "normalization_std": args.std,
-                               "interpolation": args.interpolation, "precision": "fp32"})
+                               "preprocessing": args.preprocessing,
+                               "image_size": args.image_size,
+                               "normalization_mean": args.mean,
+                               "normalization_std": args.std,
+                               "interpolation": args.interpolation,
+                               "precision": "fp32"})
+            
             torch.save(checkpoint, checkpoint_path)
+
             metrics.update({"model": args.model, "preprocessing": args.preprocessing,
                             "image_size": args.image_size, "interpolation": args.interpolation,
                             "precision": "fp32", "dual_head": True})
+            
             metrics_path.write_text(json.dumps(metrics, indent=2), encoding="utf-8")
+
             log_hparams(output, experiment, fold, args, metrics)
             results.append(metrics)
 
@@ -149,18 +162,25 @@ def main():
         writer.writeheader(); writer.writerows(results)
 
     ranked = []
+
     for loss in args.losses:
         selected = [row for row in results if row["loss"] == loss]
         scores = np.asarray([row["macro_f1"] for row in selected], dtype=float)
         ranked.append({"loss": loss, "folds": len(scores), "macro_f1_mean": float(scores.mean()),
                        "macro_f1_std": float(scores.std(ddof=1)) if len(scores) > 1 else 0.0})
+        
     ranked.sort(key=lambda row: (-row["macro_f1_mean"], row["loss"]))
     summary = output / "mobilevit_loss_summary.csv"
+
     with summary.open("w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=ranked[0].keys())
-        writer.writeheader(); writer.writerows(ranked)
+        writer.writeheader()
+        writer.writerows(ranked)
+
     selection = {"architecture": args.model, "dual_head": True, **ranked[0]}
+
     (output / "selected_mobilevit_loss.json").write_text(json.dumps(selection, indent=2), encoding="utf-8")
+
     print(f"\nWinning loss: {ranked[0]['loss']} macro F1={ranked[0]['macro_f1_mean']:.4f}")
     print(f"Saved {fold_summary}, {summary}, and selected_mobilevit_loss.json")
 
