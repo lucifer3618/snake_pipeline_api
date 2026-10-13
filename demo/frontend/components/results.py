@@ -111,6 +111,35 @@ def _render_vote_chart(result: dict[str, Any]) -> None:
     st.markdown("#### Fold-member votes")
     st.bar_chart(frame, horizontal=True, height=300, color="#61dfb3")
 
+# This function output confidance for each fold
+def _render_fold_confidences(result: dict[str, Any]) -> None:
+    fold_confidences = result.get("fold_confidences") or []
+    if not fold_confidences:
+        return
+
+    # Create a Sreamlit DataFrame to display fold-wise confidence
+    frame = pd.DataFrame(
+        {
+            "Fold": [f"Fold {item['fold']}" for item in fold_confidences],
+            "Confidence": [float(item["confidence"]) * 100 for item in fold_confidences],
+        }
+    )
+    st.markdown("#### Fold-wise confidence")
+    st.dataframe(
+        frame,
+        hide_index=True,
+        width="stretch",
+        column_config={
+            "Confidence": st.column_config.ProgressColumn(
+                "Confidence",
+                help="Top probability from this fold model",
+                min_value=0.0,
+                max_value=100.0,
+                format="%.2f%%",
+            )
+        },
+    )
+
 # Function render the technical diagnmostics section
 def _render_diagnostics(result: dict[str, Any]) -> None:
     with st.expander("Technical diagnostics", expanded=False):
@@ -127,6 +156,8 @@ def _render_diagnostics(result: dict[str, Any]) -> None:
                 f"({reduction['roi_width']}x{reduction['roi_height']} from "
                 f"{reduction['original_width']}x{reduction['original_height']})."
             )
+        # Called the newly created function to render fold confidences
+        _render_fold_confidences(result)
         _render_vote_chart(result)
         st.markdown("#### Raw API response")
         st.json(result)

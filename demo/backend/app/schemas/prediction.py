@@ -29,6 +29,11 @@ class PixelReduction(BaseModel):
     reduction_percentage: float
 
 
+class FoldConfidence(BaseModel):
+    fold: int
+    confidence: float = Field(ge=0.0, le=1.0)
+
+
 class PredictionResponse(BaseModel):
     decision: Literal["ACCEPT", "WITHHOLD"]
     reasons: list[str] = Field(default_factory=list)
@@ -39,6 +44,7 @@ class PredictionResponse(BaseModel):
     normalized_entropy: float | None = None
     agreement: float | None = None
     member_votes: list[int] | None = None
+    fold_confidences: list[FoldConfidence] | None = None
     predicted_venom: int | None = None
     venom_confidence: float | None = None
     expected_venom: int | None = None
