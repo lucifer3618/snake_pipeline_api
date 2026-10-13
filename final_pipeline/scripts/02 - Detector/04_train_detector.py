@@ -1,8 +1,4 @@
-"""Train one YOLO11 instance-segmentation experiment.
-
-This portable script preserves the original Ultralytics ``project/name``
-output layout, including weights, args.yaml, results.csv and plots.
-"""
+# Train one YOLO11 instance-segmentation experiment.
 
 import argparse
 import os
@@ -14,7 +10,8 @@ os.environ.setdefault("YOLO_CONFIG_DIR", tempfile.gettempdir())
 from ultralytics import YOLO
 
 
-def parse_args() -> argparse.Namespace:
+def main() -> None:
+
     parser = argparse.ArgumentParser(description="Train one YOLO segmentation model")
     parser.add_argument("--data-yaml", "--data_yaml", dest="data_yaml", required=True)
     parser.add_argument("--model-type", "--model_type", dest="model_type", required=True)
@@ -24,11 +21,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--project", required=True)
     parser.add_argument("--name", required=True)
     parser.add_argument("--device", default=None)
-    return parser.parse_args()
 
+    args = parser.parse_args()
 
-def main() -> None:
-    args = parse_args()
     data_yaml = Path(args.data_yaml)
     if not data_yaml.is_file():
         raise FileNotFoundError(f"Dataset YAML not found: {data_yaml}")

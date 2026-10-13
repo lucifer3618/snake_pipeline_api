@@ -9,27 +9,41 @@ from torchvision.transforms import functional as TF
 
 
 class PadToSquare:
-    def __init__(self, fill=0): self.fill = fill
+    def __init__(self, fill=0):
+        self.fill = fill
     def __call__(self, image):
-        width, height = image.size; size = max(width, height)
+        width, height = image.size
+        size = max(width, height)
         left, top = (size - width) // 2, (size - height) // 2
         return TF.pad(image, [left, top, size - width - left, size - height - top], fill=self.fill)
 
-
+# RGB mean/std values are the same as ImageNet, but we use them for snake images too
 def classifier_transform(training=False, image_size=224, augmentation="basic",
                          mean=(.485, .456, .406), std=(.229, .224, .225), interpolation="bilinear"):
+
+    # The interpolation mode is specified as a string, but torchvision transforms expect an InterpolationMode enum.
     interpolation_mode = getattr(transforms.InterpolationMode, interpolation.upper(), None)
+
+    # Check for valid interpolation mode
     if interpolation_mode is None:
         raise ValueError(f"Unknown interpolation mode: {interpolation}")
+
+    # Define the sequence of transformations to apply to the images
     ops = [PadToSquare(0), transforms.Resize((image_size, image_size), interpolation=interpolation_mode)]
+
     if training:
         if augmentation == "autoaugment":
+            # AutoAugment is a data augmentation technique that applies a series of random transformations to the images.
             ops += [transforms.RandomHorizontalFlip(), transforms.AutoAugment(transforms.AutoAugmentPolicy.IMAGENET)]
         elif augmentation == "basic":
             ops += [transforms.RandomHorizontalFlip(), transforms.RandomRotation(10),
                     transforms.ColorJitter(brightness=.15, contrast=.15, saturation=.10)]
-        elif augmentation != "none": raise ValueError(f"Unknown augmentation policy: {augmentation}")
+        elif augmentation != "none":
+            raise ValueError(f"Unknown augmentation policy: {augmentation}")
+
     ops += [transforms.ToTensor(), transforms.Normalize(mean, std)]
+
+    # Compose the transformations into a single callable transform
     return transforms.Compose(ops)
 
 
@@ -47,6 +61,7 @@ def checkpoint_classifier_transform(metadata):
                                 config["interpolation"])
 
 
+# Used to oprn image in the given path and do both EXIF orientation normalization and RGB conversion
 def load_rgb_standardized(path):
     with Image.open(path) as image:
         return ImageOps.exif_transpose(image).convert("RGB")

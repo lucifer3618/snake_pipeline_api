@@ -1,4 +1,4 @@
-"""MobileViT model adapter and checkpoint-specific data utilities."""
+# MobileViT model adapter and checkpoint-specific data utilities
 from pathlib import Path
 
 import torch
@@ -9,6 +9,8 @@ from torchvision.datasets import ImageFolder
 from .config import SPECIES
 from .image_ops import classifier_transform
 from .losses import ArcMarginProduct
+
+from timm.data import resolve_model_data_config
 
 MOBILEVIT_MODELS = ("mobilevit_xxs.cvnets_in1k", "mobilevit_xs.cvnets_in1k", "mobilevit_s.cvnets_in1k")
 
@@ -52,37 +54,69 @@ class MobileViTClassifier(nn.Module):
 
 def build_mobilevit(model_name, classes, pretrained=True, dropout=.2, head_type="linear",
                     arc_scale=64., arc_margin=.5, dual_head=False):
-    return MobileViTClassifier(model_name, classes, pretrained, dropout, head_type,
-                               arc_scale, arc_margin, dual_head)
+    return MobileViTClassifier(
+        model_name,
+        classes,
+        pretrained,
+        dropout,
+        head_type,
+        arc_scale,
+        arc_margin,
+        dual_head)
 
 
 def resolve_preprocessing(model_name, mode="model", image_size=None):
     if mode == "shared":
-        return {"image_size": image_size or 224, "mean": [.485, .456, .406],
-                "std": [.229, .224, .225], "interpolation": "bilinear"}
+        return {
+            "image_size": image_size or 224,
+            "mean": [.485, .456, .406],
+            "std": [.229, .224, .225],
+            "interpolation": "bilinear"
+        }
     if mode != "model":
         raise ValueError(f"Unknown preprocessing mode: {mode}")
-    from timm.data import resolve_model_data_config
+    
     config = resolve_model_data_config(_timm().create_model(model_name, pretrained=False))
-    return {"image_size": image_size or int(config["input_size"][-1]),
-            "mean": list(config["mean"]), "std": list(config["std"]),
-            "interpolation": config.get("interpolation", "bicubic")}
+    return {
+        "image_size": image_size or int(config["input_size"][-1]),
+        "mean": list(config["mean"]),
+        "std": list(config["std"]),
+        "interpolation": config.get("interpolation", "bicubic")
+    }
 
 
 def mobilevit_loaders(fold_dir, batch, workers, image_size, augmentation, mean, std, interpolation):
     root = Path(fold_dir)
     datasets = {}
+
     for split in ("train", "validation", "calibration", "test"):
         if (root / split).is_dir():
             datasets[split] = ImageFolder(
                 root / split,
-                classifier_transform(split == "train", image_size, augmentation, mean, std, interpolation),
+                classifier_transform(
+                    split == "train",
+                    image_size,
+                    augmentation,
+                    mean,
+                    std,
+                    interpolation
+                ),
             )
             if datasets[split].classes != SPECIES:
                 raise ValueError(f"Unexpected class folders in {root / split}: {datasets[split].classes}")
+            
     if not {"train", "validation"}.issubset(datasets):
         raise ValueError("fold directory needs train/ and validation/")
-    result = {name: DataLoader(dataset, batch_size=batch, shuffle=name == "train", num_workers=workers,
-              pin_memory=torch.cuda.is_available(), persistent_workers=workers > 0)
-              for name, dataset in datasets.items()}
+    
+    result = {
+        name: DataLoader(
+                dataset, 
+                batch_size=batch,
+                shuffle=name == "train",
+                num_workers=workers,
+                pin_memory=torch.cuda.is_available(), 
+                persistent_workers=workers > 0
+            ) for name, dataset in datasets.items()
+        }
+    
     return result, datasets

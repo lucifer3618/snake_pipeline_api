@@ -1,8 +1,5 @@
-"""Build five-fold classifier ROI folders using one frozen segmentation model.
+# Build five-fold classifier ROI folders using one frozen segmentation model.
 
-No segmentation labels are required. Species targets come from the standardized
-images' class folders and the already-created split manifest.
-"""
 import argparse
 import csv
 import os

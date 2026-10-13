@@ -1,8 +1,5 @@
-"""Export thesis-ready visualizations of the four ROI-extraction stages.
+# Export thesis-ready visualizations of the four ROI-extraction stages.
 
-The detector cascade and ROI processing mirror 07b_build_fixed_detector_dataset.py:
-primary pass, higher-resolution primary retry, and optional secondary retry.
-"""
 from __future__ import annotations
 
 import argparse

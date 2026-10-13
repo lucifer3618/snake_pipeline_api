@@ -1,4 +1,4 @@
-"""Measure fallback recovery on train-pool failures without using calibration/test."""
+# Measure fallback recovery on train-pool failures without using calibration/test.
 
 import argparse
 import csv

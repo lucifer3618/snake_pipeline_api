@@ -1,4 +1,4 @@
-"""Save visual predictions from a trained YOLO checkpoint."""
+# Save visual predictions from a trained YOLO checkpoint.
 
 import argparse
 import os

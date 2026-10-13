@@ -1,4 +1,4 @@
-"""Evaluate one trained YOLO instance-segmentation checkpoint."""
+# Evaluate one trained YOLO instance-segmentation checkpoint.
 
 import argparse
 import csv
